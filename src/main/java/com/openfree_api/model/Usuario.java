@@ -1,6 +1,8 @@
 package com.openfree_api.model;
 
 import jakarta.persistence.*;
+import com.openfree_api.model.enums.TipoUsuario;
+
 
 @Entity
 @Table(name = "usuarios")
@@ -17,7 +19,8 @@ public class Usuario {
 
     private String telefone;
 
-    private String tipoUsuario;
+    @Enumerated(EnumType.STRING)
+    private TipoUsuario tipoUsuario;
 
     public Usuario() {
     }
@@ -62,11 +65,15 @@ public class Usuario {
         this.telefone = telefone;
     }
 
-    public String getTipoUsuario() {
+    public TipoUsuario getTipoUsuario() {
         return tipoUsuario;
     }
 
-    public void setTipoUsuario(String tipoUsuario) {
+    public void setTipoUsuario(TipoUsuario tipoUsuario) {
         this.tipoUsuario = tipoUsuario;
+    }
+
+    public void setTipoUsuario(String tipoUsuario) {
+        this.tipoUsuario = tipoUsuario != null ? TipoUsuario.valueOf(tipoUsuario) : null;
     }
 }
