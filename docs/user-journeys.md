@@ -1,4 +1,4 @@
-<div>Jornada da empresa<\div>
+<Div> Jornada da empresa</Div>
   
 Cadastro
 Validação do CNPJ
@@ -9,7 +9,7 @@ Escolha do freelancer
 Finalização do serviço
 Avaliação
 
-<div>Jornada do freelancer<\div>
+<Div>Jornada do freelancer </Div>
   
 Cadastro
 Completar perfil
