@@ -21,7 +21,7 @@ OpenFree é uma plataforma que conecta empresas e freelancers de forma simples e
 
 * Cadastro de empresas
 * Cadastro de freelancers
-* Publicação de vagas
+* Publicação de trabalhos
 * Sistema de candidaturas
 * Avaliações
 * Dashboard

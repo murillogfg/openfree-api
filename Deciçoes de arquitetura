@@ -1,0 +1,7 @@
+<Div> Decisão1: Usar H2 no desenvolvimento inicial e PostgreSQL na produção.<\Div>
+  <A1>Motivo: Agilizar o desenvolvimento do MVP.<A1>
+  <Div>Decisão2: O pagamento pela OpenFree será opcional. <\Div>
+    <A1>Motivo: Reduzir atrito para empresas no lançamento e validar o mercado antes de investir em integrações financeiras.<\A1>
+    
+  <Div>Decisão3: O foco inicial será gastronomia. <\Div>
+  <A1>Motivo: É um mercado que eu conheço bem, facilitando entrevistas com usuários e validação das necessidades reais.<\A1>
