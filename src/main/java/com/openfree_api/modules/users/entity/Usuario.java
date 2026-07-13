@@ -1,7 +1,8 @@
-package com.openfree_api.model;
+package com.openfree_api.modules.users.entity;
+
+import com.openfree_api.modules.users.model.enums.TipoUsuario;
 
 import jakarta.persistence.*;
-import com.openfree_api.model.enums.TipoUsuario;
 
 
 @Entity

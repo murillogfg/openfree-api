@@ -1,8 +1,9 @@
-package com.openfree_api.controller;
+package com.openfree_api.modules.users.controller;
 
-import com.openfree_api.model.Vaga;
-import com.openfree_api.repository.VagaRepository;
 import org.springframework.web.bind.annotation.*;
+
+import com.openfree_api.modules.users.model.Vaga;
+import com.openfree_api.modules.users.repository.VagaRepository;
 
 import java.util.List;
 

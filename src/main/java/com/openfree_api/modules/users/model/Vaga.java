@@ -1,4 +1,4 @@
-package com.openfree_api.model;
+package com.openfree_api.modules.users.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
