@@ -6,6 +6,10 @@ import com.openfree_api.modules.companies.entity.Empresa;
 import com.openfree_api.modules.companies.mapper.EmpresaMapper;
 import com.openfree_api.modules.companies.repository.EmpresaRepository;
 import org.springframework.stereotype.Service;
+import com.openfree_api.common.exception.BusinessException;
+
+
+
 
 import java.util.List;
 import java.util.Optional;
@@ -39,12 +43,15 @@ public class EmpresaService {
     public EmpresaResponse criar(CreateEmpresaRequest request) {
 
         if (empresaRepository.existsByCnpj(request.getCnpj())) {
-            throw new RuntimeException("Já existe uma empresa cadastrada com este CNPJ.");
+          throw new BusinessException(
+        "Já existe uma empresa cadastrada com este CNPJ."
+);
         }
-
         if (empresaRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Já existe uma empresa cadastrada com este e-mail.");
-        }
+    throw new BusinessException(
+            "Já existe uma empresa cadastrada com este e-mail."
+    );
+}
 
         Empresa empresa = empresaMapper.toEntity(request);
 
