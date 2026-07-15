@@ -1,6 +1,7 @@
 package com.openfree_api.modules.companies.service;
 
 import com.openfree_api.common.exception.BusinessException;
+import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
@@ -13,13 +14,10 @@ import com.openfree_api.modules.companies.repository.EmpresaRepository;
 import com.openfree_api.modules.companies.repository.EmpresaUsuarioRepository;
 import com.openfree_api.modules.users.entity.Usuario;
 import com.openfree_api.modules.users.repository.UsuarioRepository;
-
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.stereotype.Service;
-import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
-import com.openfree_api.modules.companies.mapper.EmpresaUsuarioMapper;
+
 
 @Service
 public class EmpresaService {
@@ -33,7 +31,7 @@ public class EmpresaService {
             EmpresaRepository empresaRepository,
             EmpresaMapper empresaMapper,
             EmpresaUsuarioRepository empresaUsuarioRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository, EmpresaUsuarioMapper empresaUsuarioMapper
     ) {
         this.empresaRepository = empresaRepository;
         this.empresaMapper = empresaMapper;
@@ -117,4 +115,41 @@ public class EmpresaService {
             .map(empresaUsuarioMapper::toResponse)
             .toList();
 }
+public EmpresaUsuarioResponse adicionarMembro(
+        Long empresaId,
+        AddEmpresaUsuarioRequest request
+) {
+
+    Empresa empresa = empresaRepository.findById(empresaId)
+            .orElseThrow(() ->
+                    new BusinessException("Empresa não encontrada.")
+            );
+
+    Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
+            .orElseThrow(() ->
+                    new BusinessException("Usuário não encontrado.")
+            );
+
+    if (empresaUsuarioRepository.existsByEmpresaIdAndUsuarioId(
+            empresaId,
+            request.getUsuarioId()
+    )) {
+        throw new BusinessException(
+                "Este usuário já pertence à empresa."
+        );
+    }
+
+    EmpresaUsuario empresaUsuario = new EmpresaUsuario();
+    empresaUsuario.setEmpresa(empresa);
+    empresaUsuario.setUsuario(usuario);
+    empresaUsuario.setCargo(request.getCargo());
+    empresaUsuario.setAtivo(true);
+
+    EmpresaUsuario salvo =
+            empresaUsuarioRepository.save(empresaUsuario);
+
+    return empresaUsuarioMapper.toResponse(salvo);
+}
+
+
 }

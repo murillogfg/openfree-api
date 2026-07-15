@@ -4,6 +4,6 @@ public enum CargoEmpresa {
 
     OWNER,
     ADMIN,
-    RH,
-    FINANCEIRO
+    MANAGER,
+    MEMBER
 }

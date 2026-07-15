@@ -1,18 +1,17 @@
 package com.openfree_api.modules.companies.controller;
 
 import com.openfree_api.common.response.ApiResponse;
+import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
 import com.openfree_api.modules.companies.service.EmpresaService;
 import jakarta.validation.Valid;
-
 import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
+
 
 @RestController
 @RequestMapping("/companies")
@@ -96,4 +95,24 @@ public ResponseEntity<ApiResponse<List<EmpresaUsuarioResponse>>> listarMembros(
             )
     );
 }
+
+@PostMapping("/{empresaId}/members")
+public ResponseEntity<ApiResponse<EmpresaUsuarioResponse>> adicionarMembro(
+        @PathVariable Long empresaId,
+        @Valid @RequestBody AddEmpresaUsuarioRequest request
+) {
+
+    EmpresaUsuarioResponse membro =
+            empresaService.adicionarMembro(empresaId, request);
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                    ApiResponse.success(
+                            "Membro adicionado com sucesso.",
+                            membro
+                    )
+            );
+}
+
 }
