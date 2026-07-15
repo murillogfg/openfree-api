@@ -6,6 +6,9 @@ import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
 import com.openfree_api.modules.companies.service.EmpresaService;
+import com.openfree_api.modules.jobs.dto.VagaResponse;
+import com.openfree_api.modules.jobs.service.VagaService;
+
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -17,9 +20,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/companies")
 public class EmpresaController {
 
-    private final EmpresaService empresaService;
+        private final VagaService vagaService;
+private final EmpresaService empresaService;
 
-    public EmpresaController(EmpresaService empresaService) {
+    public EmpresaController(EmpresaService empresaService, VagaService vagaService) {
+        this.vagaService = vagaService;
         this.empresaService = empresaService;
     }
 
@@ -114,5 +119,19 @@ public ResponseEntity<ApiResponse<EmpresaUsuarioResponse>> adicionarMembro(
                     )
             );
 }
+        @GetMapping("/{empresaId}/jobs")
+public ResponseEntity<ApiResponse<List<VagaResponse>>> listarVagas(
+        @PathVariable Long empresaId
+) {
 
+    List<VagaResponse> vagas =
+            vagaService.listarPorEmpresa(empresaId);
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Vagas da empresa listadas com sucesso.",
+                    vagas
+            )
+    );
+}
 }
