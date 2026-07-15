@@ -1,14 +1,18 @@
 package com.openfree_api.modules.companies.controller;
 
+import com.openfree_api.common.response.ApiResponse;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
+import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
 import com.openfree_api.modules.companies.service.EmpresaService;
 import jakarta.validation.Valid;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
 
 @RestController
 @RequestMapping("/companies")
@@ -21,30 +25,53 @@ public class EmpresaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EmpresaResponse>> listarTodas() {
-        return ResponseEntity.ok(empresaService.listarTodas());
+    public ResponseEntity<ApiResponse<List<EmpresaResponse>>> listarTodas() {
+
+        List<EmpresaResponse> empresas = empresaService.listarTodas();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Empresas listadas com sucesso.",
+                        empresas
+                )
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EmpresaResponse> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<EmpresaResponse>> buscarPorId(
+            @PathVariable Long id
+    ) {
         return empresaService.buscarPorId(id)
-                .map(ResponseEntity::ok)
+                .map(empresa ->
+                        ResponseEntity.ok(
+                                ApiResponse.success(
+                                        "Empresa encontrada com sucesso.",
+                                        empresa
+                                )
+                        )
+                )
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<EmpresaResponse> criar(
+    public ResponseEntity<ApiResponse<EmpresaResponse>> criar(
             @Valid @RequestBody CreateEmpresaRequest request
     ) {
-        EmpresaResponse response = empresaService.criar(request);
+        EmpresaResponse empresa = empresaService.criar(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(response);
+                .body(
+                        ApiResponse.success(
+                                "Empresa criada com sucesso.",
+                                empresa
+                        )
+                );
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
+
         boolean excluida = empresaService.excluir(id);
 
         if (!excluida) {
@@ -53,4 +80,20 @@ public class EmpresaController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/{empresaId}/members")
+public ResponseEntity<ApiResponse<List<EmpresaUsuarioResponse>>> listarMembros(
+        @PathVariable Long empresaId
+) {
+
+    List<EmpresaUsuarioResponse> membros =
+            empresaService.listarMembros(empresaId);
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Membros da empresa listados com sucesso.",
+                    membros
+            )
+    );
+}
 }

@@ -51,19 +51,26 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception exception
-    ) {
-        ErrorResponse response = new ErrorResponse(
-                false,
-                "Ocorreu um erro interno.",
-                List.of("Erro inesperado no servidor."),
-                LocalDateTime.now()
-        );
+   @ExceptionHandler(Exception.class)
+public ResponseEntity<ErrorResponse> handleGenericException(
+        Exception exception
+) {
+    System.err.println("========== ERRO REAL ==========");
+    System.err.println("TIPO: " + exception.getClass().getName());
+    System.err.println("MENSAGEM: " + exception.getMessage());
+    
+    
 
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(response);
-    }
+    ErrorResponse response = new ErrorResponse(
+            false,
+            "Ocorreu um erro interno.",
+            List.of("Erro inesperado no servidor."),
+            LocalDateTime.now()
+    );
+
+    return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(response);
 }
+}
+    

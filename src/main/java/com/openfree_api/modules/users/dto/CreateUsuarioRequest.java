@@ -1,5 +1,7 @@
 package com.openfree_api.modules.users.dto;
 
+import com.openfree_api.modules.users.model.enums.TipoUsuario;
+
 public class CreateUsuarioRequest {
 
     private String nome;

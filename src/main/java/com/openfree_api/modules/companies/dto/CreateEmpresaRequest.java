@@ -91,4 +91,15 @@ public class CreateEmpresaRequest {
     public void setLogo(String logo) {
         this.logo = logo;
     }
+
+    private Long ownerId;
+
+    public Long getOwnerId() {
+    return ownerId;
+    }
+
+public void setOwnerId(Long ownerId) {
+    this.ownerId = ownerId;
+    }
+
 }

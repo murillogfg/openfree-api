@@ -3,6 +3,7 @@ package com.openfree_api.modules.users.service;
 import com.openfree_api.modules.users.dto.CreateUsuarioRequest;
 import com.openfree_api.modules.users.dto.UsuarioResponse;
 import com.openfree_api.modules.users.entity.Usuario;
+import com.openfree_api.modules.users.mapper.UsuarioMapper;
 import com.openfree_api.modules.users.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
@@ -13,35 +14,45 @@ import java.util.Optional;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioMapper usuarioMapper;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(
+            UsuarioRepository usuarioRepository,
+            UsuarioMapper usuarioMapper
+    ) {
         this.usuarioRepository = usuarioRepository;
+        this.usuarioMapper = usuarioMapper;
     }
 
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+    public List<UsuarioResponse> listarTodos() {
+        return usuarioRepository.findAll()
+                .stream()
+                .map(usuarioMapper::toResponse)
+                .toList();
     }
 
-    public Optional<Usuario> buscarPorId(Long id) {
-        return usuarioRepository.findById(id);
-    }
-
-    public <S> Usuario criar1(CreateUsuarioRequest request) {
-        // Map CreateUsuarioRequest to Usuario entity. Adjust mapping as needed.
-        Usuario usuario = new Usuario();
-        // Example mappings (uncomment and adjust to real fields):
-        // usuario.setName(request.getName());
-        // usuario.setEmail(request.getEmail());
-        return usuarioRepository.save(usuario);
-    }
-
-    public boolean excluir(Long id) {
-        usuarioRepository.deleteById(id);
-        return false;
+    public Optional<UsuarioResponse> buscarPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .map(usuarioMapper::toResponse);
     }
 
     public UsuarioResponse criar(CreateUsuarioRequest request) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'criar'");
+
+        Usuario usuario = usuarioMapper.toEntity(request);
+
+        Usuario usuarioSalvo = usuarioRepository.save(usuario);
+
+        return usuarioMapper.toResponse(usuarioSalvo);
+    }
+
+    public boolean excluir(Long id) {
+
+        if (!usuarioRepository.existsById(id)) {
+            return false;
+        }
+
+        usuarioRepository.deleteById(id);
+
+        return true;
     }
 }

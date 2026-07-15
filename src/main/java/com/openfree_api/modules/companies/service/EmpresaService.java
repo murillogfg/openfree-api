@@ -1,31 +1,45 @@
 package com.openfree_api.modules.companies.service;
 
+import com.openfree_api.common.exception.BusinessException;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
+import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
+import com.openfree_api.modules.companies.entity.CargoEmpresa;
 import com.openfree_api.modules.companies.entity.Empresa;
+import com.openfree_api.modules.companies.entity.EmpresaUsuario;
 import com.openfree_api.modules.companies.mapper.EmpresaMapper;
+import com.openfree_api.modules.companies.mapper.EmpresaUsuarioMapper;
 import com.openfree_api.modules.companies.repository.EmpresaRepository;
-import org.springframework.stereotype.Service;
-import com.openfree_api.common.exception.BusinessException;
-
-
-
+import com.openfree_api.modules.companies.repository.EmpresaUsuarioRepository;
+import com.openfree_api.modules.users.entity.Usuario;
+import com.openfree_api.modules.users.repository.UsuarioRepository;
 
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.stereotype.Service;
+import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
+import com.openfree_api.modules.companies.mapper.EmpresaUsuarioMapper;
+
 @Service
 public class EmpresaService {
-
+    private EmpresaUsuarioMapper empresaUsuarioMapper;
     private final EmpresaRepository empresaRepository;
     private final EmpresaMapper empresaMapper;
+    private final EmpresaUsuarioRepository empresaUsuarioRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public EmpresaService(
             EmpresaRepository empresaRepository,
-            EmpresaMapper empresaMapper
+            EmpresaMapper empresaMapper,
+            EmpresaUsuarioRepository empresaUsuarioRepository,
+            UsuarioRepository usuarioRepository
     ) {
         this.empresaRepository = empresaRepository;
         this.empresaMapper = empresaMapper;
+        this.empresaUsuarioRepository = empresaUsuarioRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.empresaUsuarioMapper = empresaUsuarioMapper;
     }
 
     public List<EmpresaResponse> listarTodas() {
@@ -43,19 +57,39 @@ public class EmpresaService {
     public EmpresaResponse criar(CreateEmpresaRequest request) {
 
         if (empresaRepository.existsByCnpj(request.getCnpj())) {
-          throw new BusinessException(
-        "Já existe uma empresa cadastrada com este CNPJ."
-);
+            throw new BusinessException(
+                    "Já existe uma empresa cadastrada com este CNPJ."
+            );
         }
+
         if (empresaRepository.existsByEmail(request.getEmail())) {
-    throw new BusinessException(
-            "Já existe uma empresa cadastrada com este e-mail."
-    );
-}
+            throw new BusinessException(
+                    "Já existe uma empresa cadastrada com este e-mail."
+            );
+        }
+
+        Usuario owner = usuarioRepository
+                .findById(request.getOwnerId())
+                .orElseThrow(() ->
+                        new BusinessException(
+                                "Usuário responsável pela empresa não encontrado."
+                        )
+                );
 
         Empresa empresa = empresaMapper.toEntity(request);
 
         Empresa empresaSalva = empresaRepository.save(empresa);
+
+        EmpresaUsuario empresaUsuario = new EmpresaUsuario();
+
+        empresaUsuario.setEmpresa(empresaSalva);
+        empresaUsuario.setUsuario(owner);
+        empresaUsuario.setCargo(CargoEmpresa.OWNER);
+        empresaUsuario.setAtivo(true);
+        empresaUsuarioMapper = new EmpresaUsuarioMapper();
+
+        
+        empresaUsuarioRepository.save(empresaUsuario);
 
         return empresaMapper.toResponse(empresaSalva);
     }
@@ -70,4 +104,17 @@ public class EmpresaService {
 
         return true;
     }
+
+    public List<EmpresaUsuarioResponse> listarMembros(Long empresaId) {
+
+    if (!empresaRepository.existsById(empresaId)) {
+        throw new BusinessException("Empresa não encontrada.");
+    }
+
+    return empresaUsuarioRepository
+            .findByEmpresaId(empresaId)
+            .stream()
+            .map(empresaUsuarioMapper::toResponse)
+            .toList();
+}
 }
