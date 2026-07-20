@@ -3,6 +3,7 @@ package com.openfree_api.modules.companies.controller;
 import com.openfree_api.common.response.ApiResponse;
 import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
+import com.openfree_api.modules.companies.dto.DashboardEmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
 import com.openfree_api.modules.companies.service.EmpresaService;
@@ -134,4 +135,21 @@ public ResponseEntity<ApiResponse<List<VagaResponse>>> listarVagas(
             )
     );
 }
+        @GetMapping("/{empresaId}/dashboard")
+public ResponseEntity<ApiResponse<DashboardEmpresaResponse>> dashboard(
+        @PathVariable Long empresaId
+) {
+
+    DashboardEmpresaResponse dashboard =
+            empresaService.dashboard(empresaId);
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Dashboard carregado com sucesso.",
+                    dashboard
+            )
+    );
+}
+
+
 }

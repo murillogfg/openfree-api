@@ -5,6 +5,7 @@ import com.openfree_api.modules.companies.entity.Empresa;
 import com.openfree_api.modules.companies.repository.EmpresaRepository;
 import com.openfree_api.modules.jobs.dto.CreateVagaRequest;
 import com.openfree_api.modules.jobs.dto.VagaResponse;
+import com.openfree_api.modules.jobs.entity.StatusVaga;
 import com.openfree_api.modules.jobs.entity.Vaga;
 import com.openfree_api.modules.jobs.mapper.VagaMapper;
 import com.openfree_api.modules.jobs.repository.VagaRepository;
@@ -93,4 +94,24 @@ public class VagaService {
 
         return true;
     }
+
+    public VagaResponse publicar(Long id) {
+
+    Vaga vaga = vagaRepository.findById(id)
+            .orElseThrow(() ->
+                    new BusinessException("Vaga não encontrada.")
+            );
+
+    if (vaga.getStatus() != StatusVaga.RASCUNHO) {
+        throw new BusinessException(
+                "Somente vagas em RASCUNHO podem ser publicadas."
+        );
+    }
+
+    vaga.setStatus(StatusVaga.PUBLICADA);
+
+    Vaga vagaAtualizada = vagaRepository.save(vaga);
+
+    return vagaMapper.toResponse(vagaAtualizada);
+}
 }

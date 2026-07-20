@@ -18,4 +18,14 @@ public interface VagaRepository extends JpaRepository<Vaga, Long> {
             Long empresaId,
             StatusVaga status
     );
+    long countByEmpresaId(Long empresaId);
+
+long countByEmpresaIdAndStatus(
+        Long empresaId,
+        StatusVaga status
+);
+
+
 }
+
+

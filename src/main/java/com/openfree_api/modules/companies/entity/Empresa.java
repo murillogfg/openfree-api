@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+import com.openfree_api.modules.candidaturas.dto.CandidaturaResponse;
+
 @Entity
 @Table(name = "empresas")
 public class Empresa {
@@ -154,6 +156,11 @@ public class Empresa {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public CandidaturaResponse getOwner() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getOwner'");
     }
 }
 

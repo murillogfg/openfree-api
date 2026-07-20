@@ -83,4 +83,19 @@ public class VagaController {
 
         return ResponseEntity.noContent().build();
     }
+    @PatchMapping("/{id}/publish")
+public ResponseEntity<ApiResponse<VagaResponse>> publicar(
+        @PathVariable Long id
+) {
+
+    VagaResponse vaga = vagaService.publicar(id);
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Vaga publicada com sucesso.",
+                    vaga
+            )
+    );
+}
+
 }
