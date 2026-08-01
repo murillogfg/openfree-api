@@ -92,14 +92,5 @@ public class CreateEmpresaRequest {
         this.logo = logo;
     }
 
-    private Long ownerId;
-
-    public Long getOwnerId() {
-    return ownerId;
-    }
-
-public void setOwnerId(Long ownerId) {
-    this.ownerId = ownerId;
-    }
 
 }

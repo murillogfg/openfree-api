@@ -44,7 +44,10 @@ long countByVagaEmpresaIdAndStatus(
 );
 
 
-
+Optional<Candidatura> findByIdAndVagaEmpresaId(
+        Long candidaturaId,
+        Long empresaId
+);
 
 
 }

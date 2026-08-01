@@ -24,6 +24,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.openfree_api.modules.users.enums.Role;
+
 @Service
 public class EmpresaService {
 
@@ -65,42 +70,53 @@ public class EmpresaService {
                 .map(empresaMapper::toResponse);
     }
 
-    public EmpresaResponse criar(CreateEmpresaRequest request) {
+ @Transactional
+public EmpresaResponse criar(
+        CreateEmpresaRequest request,
+        Authentication authentication
+) {
 
-        if (empresaRepository.existsByCnpj(request.getCnpj())) {
-            throw new BusinessException(
-                    "Já existe uma empresa cadastrada com este CNPJ."
-            );
-        }
-
-        if (empresaRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException(
-                    "Já existe uma empresa cadastrada com este e-mail."
-            );
-        }
-
-        Usuario owner = usuarioRepository
-                .findById(request.getOwnerId())
-                .orElseThrow(() ->
-                        new BusinessException(
-                                "Usuário responsável pela empresa não encontrado."
-                        )
-                );
-
-        Empresa empresa = empresaMapper.toEntity(request);
-
-        Empresa empresaSalva = empresaRepository.save(empresa);
-
-        EmpresaUsuario empresaUsuario = new EmpresaUsuario();
-        empresaUsuario.setEmpresa(empresaSalva);
-        empresaUsuario.setUsuario(owner);
-        empresaUsuario.setCargo(CargoEmpresa.OWNER);
-        empresaUsuario.setAtivo(true);
-
-        empresaUsuarioRepository.save(empresaUsuario);
-
-        return empresaMapper.toResponse(empresaSalva);
+    if (empresaRepository.existsByCnpj(request.getCnpj())) {
+        throw new BusinessException(
+                "Já existe uma empresa cadastrada com este CNPJ."
+        );
     }
+
+    if (empresaRepository.existsByEmail(request.getEmail())) {
+        throw new BusinessException(
+                "Já existe uma empresa cadastrada com este e-mail."
+        );
+    }
+
+    String emailUsuarioLogado = authentication.getName();
+
+    Usuario owner = usuarioRepository
+            .findByEmail(emailUsuarioLogado)
+            .orElseThrow(() ->
+                    new BusinessException(
+                            "Usuário autenticado não encontrado."
+                    )
+            );
+
+    Empresa empresa = empresaMapper.toEntity(request);
+
+empresa.setUsuario(owner);
+
+Empresa empresaSalva = empresaRepository.save(empresa);
+
+EmpresaUsuario empresaUsuario = new EmpresaUsuario();
+empresaUsuario.setEmpresa(empresaSalva);
+empresaUsuario.setUsuario(owner);
+empresaUsuario.setCargo(CargoEmpresa.OWNER);
+empresaUsuario.setAtivo(true);
+
+empresaUsuarioRepository.save(empresaUsuario);
+
+owner.setRole(Role.EMPRESA);
+usuarioRepository.save(owner);
+
+return empresaMapper.toResponse(empresaSalva);
+}
 
     public boolean excluir(Long id) {
 

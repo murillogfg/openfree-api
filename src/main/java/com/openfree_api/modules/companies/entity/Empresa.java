@@ -1,10 +1,10 @@
 package com.openfree_api.modules.companies.entity;
 
+import com.openfree_api.modules.users.entity.Usuario;
 import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDateTime;    
 
-import com.openfree_api.modules.candidaturas.dto.CandidaturaResponse;
 
 @Entity
 @Table(name = "empresas")
@@ -13,6 +13,20 @@ public class Empresa {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /*
+     * Cada empresa pertence a um usuário.
+     *
+     * unique = true impede que o mesmo usuário tenha
+     * mais de uma empresa neste momento do projeto.
+     */
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "usuario_id",
+            nullable = false,
+            unique = true
+    )
+    private Usuario usuario;
 
     @Column(nullable = false, length = 150)
     private String razaoSocial;
@@ -74,8 +88,12 @@ public class Empresa {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public String getRazaoSocial() {
@@ -157,10 +175,4 @@ public class Empresa {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
-
-    public CandidaturaResponse getOwner() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getOwner'");
-    }
 }
-

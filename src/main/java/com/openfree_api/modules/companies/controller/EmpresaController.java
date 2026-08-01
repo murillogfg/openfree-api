@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/companies")
@@ -58,21 +59,26 @@ private final EmpresaService empresaService;
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<EmpresaResponse>> criar(
-            @Valid @RequestBody CreateEmpresaRequest request
-    ) {
-        EmpresaResponse empresa = empresaService.criar(request);
+   @PostMapping
+public ResponseEntity<ApiResponse<EmpresaResponse>> criar(
+        @Valid @RequestBody CreateEmpresaRequest request,
+        Authentication authentication
+) {
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        ApiResponse.success(
-                                "Empresa criada com sucesso.",
-                                empresa
-                        )
-                );
-    }
+    EmpresaResponse empresa = empresaService.criar(
+            request,
+            authentication
+    );
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                    ApiResponse.success(
+                            "Empresa criada com sucesso.",
+                            empresa
+                    )
+            );
+}
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {

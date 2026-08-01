@@ -1,6 +1,11 @@
 package com.openfree_api.modules.jobs.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -8,36 +13,51 @@ import java.time.LocalTime;
 
 public class CreateVagaRequest {
 
-    @NotNull(message = "O ID da empresa é obrigatório.")
-    private Long empresaId;
-
     @NotBlank(message = "O título é obrigatório.")
-    @Size(max = 120, message = "O título deve ter no máximo 120 caracteres.")
+    @Size(
+            max = 120,
+            message = "O título deve ter no máximo 120 caracteres."
+    )
     private String titulo;
 
     @NotBlank(message = "A descrição é obrigatória.")
     private String descricao;
 
-    @Size(max = 1000, message = "Os requisitos devem ter no máximo 1000 caracteres.")
+    @Size(
+            max = 1000,
+            message = "Os requisitos devem ter no máximo 1000 caracteres."
+    )
     private String requisitos;
 
     @NotBlank(message = "A cidade é obrigatória.")
     private String cidade;
 
     @NotBlank(message = "O estado é obrigatório.")
-    @Size(min = 2, max = 2, message = "O estado deve conter a sigla com 2 caracteres.")
+    @Size(
+            min = 2,
+            max = 2,
+            message = "O estado deve conter a sigla com 2 caracteres."
+    )
     private String estado;
 
     @NotNull(message = "O valor é obrigatório.")
-    @DecimalMin(value = "0.01", message = "O valor deve ser maior que zero.")
+    @DecimalMin(
+            value = "0.01",
+            message = "O valor deve ser maior que zero."
+    )
     private BigDecimal valor;
 
     @NotNull(message = "A quantidade de pessoas é obrigatória.")
-    @Min(value = 1, message = "A quantidade de pessoas deve ser no mínimo 1.")
+    @Min(
+            value = 1,
+            message = "A quantidade de pessoas deve ser no mínimo 1."
+    )
     private Integer quantidadePessoas;
 
     @NotNull(message = "A data do serviço é obrigatória.")
-    @FutureOrPresent(message = "A data do serviço não pode estar no passado.")
+    @FutureOrPresent(
+            message = "A data do serviço não pode estar no passado."
+    )
     private LocalDate dataServico;
 
     @NotNull(message = "O horário de início é obrigatório.")
@@ -45,14 +65,6 @@ public class CreateVagaRequest {
 
     @NotNull(message = "O horário de término é obrigatório.")
     private LocalTime horarioFim;
-
-    public Long getEmpresaId() {
-        return empresaId;
-    }
-
-    public void setEmpresaId(Long empresaId) {
-        this.empresaId = empresaId;
-    }
 
     public String getTitulo() {
         return titulo;

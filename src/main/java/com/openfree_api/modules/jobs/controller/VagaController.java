@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -53,42 +53,34 @@ public class VagaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<VagaResponse>> criar(
-            @Valid @RequestBody CreateVagaRequest request
-    ) {
-
-        VagaResponse vaga = vagaService.criar(request);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        ApiResponse.success(
-                                "Vaga criada com sucesso.",
-                                vaga
-                        )
-                );
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(
-            @PathVariable Long id
-    ) {
-
-        boolean excluida = vagaService.excluir(id);
-
-        if (!excluida) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.noContent().build();
-    }
-    @PatchMapping("/{id}/publish")
-public ResponseEntity<ApiResponse<VagaResponse>> publicar(
-        @PathVariable Long id
+   @PostMapping
+public ResponseEntity<ApiResponse<VagaResponse>> criar(
+        @Valid @RequestBody CreateVagaRequest request,
+        Authentication authentication
 ) {
 
-    VagaResponse vaga = vagaService.publicar(id);
+    VagaResponse vaga = vagaService.criar(
+            request,
+            authentication
+    );
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                    ApiResponse.success(
+                            "Vaga criada com sucesso.",
+                            vaga
+                    )
+            );
+}
+ @PatchMapping("/{id}/publicar")
+public ResponseEntity<ApiResponse<VagaResponse>> publicar(
+        @PathVariable Long id,
+        Authentication authentication
+) {
+
+    VagaResponse vaga =
+            vagaService.publicar(id, authentication);
 
     return ResponseEntity.ok(
             ApiResponse.success(

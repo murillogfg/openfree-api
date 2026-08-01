@@ -1,14 +1,11 @@
 package com.openfree_api.modules.users.dto;
 
-import com.openfree_api.modules.users.model.enums.TipoUsuario;
-
 public class CreateUsuarioRequest {
 
     private String nome;
     private String email;
     private String senha;
     private String telefone;
-    private TipoUsuario tipoUsuario;
 
     public String getNome() {
         return nome;
@@ -40,13 +37,5 @@ public class CreateUsuarioRequest {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
-    }
-
-    public TipoUsuario getTipoUsuario() {
-        return tipoUsuario;
-    }
-
-    public void setTipoUsuario(TipoUsuario tipoUsuario) {
-        this.tipoUsuario = tipoUsuario;
     }
 }

@@ -4,9 +4,12 @@ import com.openfree_api.common.response.ApiResponse;
 import com.openfree_api.modules.candidaturas.dto.CandidaturaResponse;
 import com.openfree_api.modules.candidaturas.dto.CreateCandidaturaRequest;
 import com.openfree_api.modules.candidaturas.service.CandidaturaService;
+
 import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,14 +29,18 @@ public class CandidaturaController {
     @PostMapping
     public ResponseEntity<ApiResponse<CandidaturaResponse>> criar(
             @PathVariable Long vagaId,
-            @Valid @RequestBody CreateCandidaturaRequest request
+            @Valid @RequestBody CreateCandidaturaRequest request,
+            Authentication authentication
     ) {
 
         CandidaturaResponse candidatura =
-                candidaturaService.criar(vagaId, request);
+                candidaturaService.criar(
+                        vagaId,
+                        request,
+                        authentication
+                );
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(
                         ApiResponse.success(
                                 "Candidatura realizada com sucesso.",
@@ -44,11 +51,15 @@ public class CandidaturaController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CandidaturaResponse>>> listarPorVaga(
-            @PathVariable Long vagaId
+            @PathVariable Long vagaId,
+            Authentication authentication
     ) {
 
         List<CandidaturaResponse> candidaturas =
-                candidaturaService.listarPorVaga(vagaId);
+                candidaturaService.listarPorVaga(
+                        vagaId,
+                        authentication
+                );
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -59,34 +70,42 @@ public class CandidaturaController {
     }
 
     @PatchMapping("/{candidaturaId}/accept")
-public ResponseEntity<ApiResponse<CandidaturaResponse>> aceitar(
-        @PathVariable Long candidaturaId
-) {
+    public ResponseEntity<ApiResponse<CandidaturaResponse>> aceitar(
+            @PathVariable Long candidaturaId,
+            Authentication authentication
+    ) {
 
-    CandidaturaResponse candidatura =
-            candidaturaService.aceitar(candidaturaId);
+        CandidaturaResponse candidatura =
+                candidaturaService.aceitar(
+                        candidaturaId,
+                        authentication
+                );
 
-    return ResponseEntity.ok(
-            ApiResponse.success(
-                    "Candidatura aceita com sucesso.",
-                    candidatura
-            )
-    );
-}
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Candidatura aceita com sucesso.",
+                        candidatura
+                )
+        );
+    }
 
-@PatchMapping("/{candidaturaId}/reject")
-public ResponseEntity<ApiResponse<CandidaturaResponse>> recusar(
-        @PathVariable Long candidaturaId
-) {
+    @PatchMapping("/{candidaturaId}/reject")
+    public ResponseEntity<ApiResponse<CandidaturaResponse>> recusar(
+            @PathVariable Long candidaturaId,
+            Authentication authentication
+    ) {
 
-    CandidaturaResponse candidatura =
-            candidaturaService.recusar(candidaturaId);
+        CandidaturaResponse candidatura =
+                candidaturaService.recusar(
+                        candidaturaId,
+                        authentication
+                );
 
-    return ResponseEntity.ok(
-            ApiResponse.success(
-                    "Candidatura recusada com sucesso.",
-                    candidatura
-            )
-    );
-}
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Candidatura recusada com sucesso.",
+                        candidatura
+                )
+        );
+    }
 }

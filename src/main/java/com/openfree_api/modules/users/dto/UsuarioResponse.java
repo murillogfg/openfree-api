@@ -1,14 +1,21 @@
 package com.openfree_api.modules.users.dto;
 
-import com.openfree_api.modules.users.model.enums.TipoUsuario;
-
+import com.openfree_api.modules.users.enums.Role;
 public class UsuarioResponse {
 
     private Long id;
     private String nome;
     private String email;
     private String telefone;
-    private TipoUsuario tipoUsuario;
+    private Role role;
+
+public Role getRole() {
+    return role;
+}
+
+public void setRole(Role role) {
+    this.role = role;
+}
 
     public Long getId() {
         return id;
@@ -42,11 +49,5 @@ public class UsuarioResponse {
         this.telefone = telefone;
     }
 
-    public TipoUsuario getTipoUsuario() {
-        return tipoUsuario;
+    
     }
-
-    public void setTipoUsuario(TipoUsuario tipoUsuario) {
-        this.tipoUsuario = tipoUsuario;
-    }
-}

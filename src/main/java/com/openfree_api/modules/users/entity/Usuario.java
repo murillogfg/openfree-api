@@ -1,27 +1,32 @@
 package com.openfree_api.modules.users.entity;
 
-import com.openfree_api.modules.users.model.enums.TipoUsuario;
-  
-import jakarta.persistence.*;
+import com.openfree_api.modules.users.enums.Role;
 
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String nome;
 
+    @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false)
     private String senha;
 
     private String telefone;
 
     @Enumerated(EnumType.STRING)
-    private TipoUsuario tipoUsuario;
+    @Column(nullable = false)
+    private Role role;
+
+    
 
     public Usuario() {
     }
@@ -66,15 +71,14 @@ public class Usuario {
         this.telefone = telefone;
     }
 
-    public TipoUsuario getTipoUsuario() {
-        return tipoUsuario;
+    public Role getRole() {
+        return role;
     }
 
-    public void setTipoUsuario(TipoUsuario tipoUsuario) {
-        this.tipoUsuario = tipoUsuario;
+    public void setRole(Role role) {
+        this.role = role;
     }
 
-    public void setTipoUsuario(String tipoUsuario) {
-        this.tipoUsuario = tipoUsuario != null ? TipoUsuario.valueOf(tipoUsuario) : null;
-    }
+    
+    
 }
