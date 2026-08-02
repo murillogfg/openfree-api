@@ -3,16 +3,21 @@ package com.openfree_api.modules.auth.service;
 import com.openfree_api.modules.auth.dto.LoginRequest;
 import com.openfree_api.modules.auth.dto.LoginResponse;
 import com.openfree_api.modules.auth.jwt.JwtService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
 
-    private static final long EXPIRATION_IN_MILLISECONDS = 3600000;
+    private static final Logger log =
+            LoggerFactory.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -27,23 +32,41 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
 
-        Authentication authentication =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                request.getEmail(),
-                                request.getSenha()
-                        )
-                );
+        try {
 
-        UserDetails userDetails =
-                (UserDetails) authentication.getPrincipal();
+            Authentication authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    request.getEmail(),
+                                    request.getSenha()
+                            )
+                    );
 
-        String token = jwtService.gerarToken(userDetails);
+            UserDetails userDetails =
+                    (UserDetails) authentication.getPrincipal();
 
-        return new LoginResponse(
-                token,
-                "Bearer",
-                EXPIRATION_IN_MILLISECONDS
-        );
+            String token =
+                    jwtService.gerarToken(userDetails);
+
+            log.info(
+                    "Usuário '{}' autenticado com sucesso.",
+                    userDetails.getUsername()
+            );
+
+            return new LoginResponse(
+                    token,
+                    "Bearer",
+                    jwtService.getExpiration()
+            );
+
+        } catch (AuthenticationException exception) {
+
+            log.warn(
+                    "Tentativa de login inválida para o e-mail '{}'.",
+                    request.getEmail()
+            );
+
+            throw exception;
+        }
     }
 }

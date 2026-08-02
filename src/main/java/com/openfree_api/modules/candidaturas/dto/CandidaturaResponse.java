@@ -8,28 +8,20 @@ import java.time.LocalDateTime;
 public class CandidaturaResponse {
 
     private Long id;
-
     private Long usuarioId;
-
     private String nome;
-
     private String email;
-
     private Long vagaId;
-
     private String vagaTitulo;
-
     private String mensagem;
-
     private BigDecimal valorProposto;
-
     private StatusCandidatura status;
-
     private Boolean empresaVisualizou;
-
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    
+    public CandidaturaResponse() {
+    }
 
     public Long getId() {
         return id;
@@ -117,5 +109,13 @@ public class CandidaturaResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -6,8 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface VagaRepository extends JpaRepository<Vaga, Long> {
+public interface VagaRepository extends
+        JpaRepository<Vaga, Long>,
+        JpaSpecificationExecutor<Vaga> {
 
     List<Vaga> findByEmpresaId(Long empresaId);
 

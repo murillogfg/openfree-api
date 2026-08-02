@@ -61,35 +61,64 @@ public class SecurityConfig {
                         )
                 )
 
-                .authorizeHttpRequests(auth -> auth
+               .authorizeHttpRequests(auth -> auth
 
-                        // Rotas públicas de autenticação
-                        .requestMatchers(
-                                "/auth/**",
-                                "/error"
-                        ).permitAll()
+        // Login e tratamento de erro
+        .requestMatchers(
+                "/auth/**",
+                "/error"
+        ).permitAll()
 
-                        // Cadastro público de usuário
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/usuarios",
-                                "/usuarios/"
-                        ).permitAll()
+        // Cadastro público de usuário
+        .requestMatchers(
+                HttpMethod.POST,
+                "/usuarios",
+                "/usuarios/"
+        ).permitAll()
 
-                        // Console H2 para desenvolvimento
-                        .requestMatchers(
-                                "/h2-console/**"
-                        ).permitAll()
+        // Swagger / OpenAPI
+        .requestMatchers(
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/v3/api-docs/**"
+        ).permitAll()
 
-                        // Somente EMPRESA pode criar vaga
-                        .requestMatchers(
-                            HttpMethod.POST,
-                                "/jobs",
-                                "/jobs/"
-                        ).hasRole("EMPRESA")
-                        // Todo o restante exige autenticação
-                        .anyRequest().authenticated()
-                )
+        // Console H2
+        .requestMatchers(
+                "/h2-console/**"
+        ).permitAll()
+
+        // Somente empresa cria vaga
+        .requestMatchers(
+                HttpMethod.POST,
+                "/jobs",
+                "/jobs/"
+        ).hasRole("EMPRESA")
+
+        // Dashboard da empresa
+        .requestMatchers(
+                "/dashboard/company"
+        ).hasRole("EMPRESA")
+
+        // Dashboard do freelancer
+        .requestMatchers(
+                "/dashboard/freelancer"
+        ).hasRole("FREELANCER")
+
+        // Restante exige autenticação
+
+        .requestMatchers(
+        HttpMethod.GET,
+        "/applications/me"
+).hasRole("FREELANCER")
+
+.requestMatchers(
+        "/notifications/**"
+).authenticated()
+
+
+        .anyRequest().authenticated()
+)
 
                 // Necessário para o H2 Console abrir dentro de iframe
                 .headers(headers ->
@@ -106,4 +135,5 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 }

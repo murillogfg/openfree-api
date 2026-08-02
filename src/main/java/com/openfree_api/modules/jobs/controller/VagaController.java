@@ -2,6 +2,7 @@ package com.openfree_api.modules.jobs.controller;
 
 import com.openfree_api.common.response.ApiResponse;
 import com.openfree_api.modules.jobs.dto.CreateVagaRequest;
+import com.openfree_api.modules.jobs.dto.JobFilterRequest;
 import com.openfree_api.modules.jobs.dto.VagaResponse;
 import com.openfree_api.modules.jobs.service.VagaService;
 import jakarta.validation.Valid;
@@ -10,6 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.security.core.Authentication;
+
+import com.openfree_api.common.response.PageResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -23,18 +29,32 @@ public class VagaController {
         this.vagaService = vagaService;
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<VagaResponse>>> listarTodas() {
+ @GetMapping
+public ResponseEntity<ApiResponse<PageResponse<VagaResponse>>> buscar(
+        JobFilterRequest filtro,
 
-        List<VagaResponse> vagas = vagaService.listarTodas();
+        @PageableDefault(
+                page = 0,
+                size = 10,
+                sort = "createdAt",
+                direction = Sort.Direction.DESC
+        )
+        Pageable pageable
+) {
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Vagas listadas com sucesso.",
-                        vagas
-                )
-        );
-    }
+    PageResponse<VagaResponse> vagas =
+            vagaService.buscar(
+                    filtro,
+                    pageable
+            );
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Vagas listadas com sucesso.",
+                    vagas
+            )
+    );
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<VagaResponse>> buscarPorId(

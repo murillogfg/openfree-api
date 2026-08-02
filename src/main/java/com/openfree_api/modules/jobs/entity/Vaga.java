@@ -191,4 +191,8 @@ public class Vaga {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void setId(Long id) {
+    this.id = id;
+}
 }

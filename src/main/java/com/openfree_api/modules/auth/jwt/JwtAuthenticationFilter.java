@@ -1,10 +1,15 @@
 package com.openfree_api.modules.auth.jwt;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +23,9 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -53,8 +61,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .substring(BEARER_PREFIX.length())
                 .trim();
 
+        if (token.isBlank()) {
+
+            log.warn(
+                    "Cabeçalho Authorization sem token na rota '{}'.",
+                    request.getRequestURI()
+            );
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
-            String email = jwtService.extrairEmail(token);
+
+            String email =
+                    jwtService.extrairEmail(token);
 
             boolean usuarioAindaNaoAutenticado =
                     SecurityContextHolder
@@ -83,15 +104,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder
                             .getContext()
                             .setAuthentication(authentication);
+
+                    log.debug(
+                            "Usuário '{}' autenticado pelo JWT na rota '{}'.",
+                            email,
+                            request.getRequestURI()
+                    );
+
+                } else {
+
+                    log.warn(
+                            "JWT rejeitado para o usuário '{}' na rota '{}'.",
+                            email,
+                            request.getRequestURI()
+                    );
                 }
             }
 
-        } catch (
-                JwtException
-                | IllegalArgumentException
-                | UsernameNotFoundException exception
-        ) {
+        } catch (ExpiredJwtException exception) {
+
             SecurityContextHolder.clearContext();
+
+            log.warn(
+                    "Token JWT expirado na rota '{}'.",
+                    request.getRequestURI()
+            );
+
+        } catch (UsernameNotFoundException exception) {
+
+            SecurityContextHolder.clearContext();
+
+            log.warn(
+                    "JWT referencia um usuário inexistente na rota '{}'.",
+                    request.getRequestURI()
+            );
+
+        } catch (JwtException | IllegalArgumentException exception) {
+
+            SecurityContextHolder.clearContext();
+
+            log.warn(
+                    "Token JWT inválido ou malformado na rota '{}'. Motivo: {}",
+                    request.getRequestURI(),
+                    exception.getClass().getSimpleName()
+            );
         }
 
         filterChain.doFilter(request, response);

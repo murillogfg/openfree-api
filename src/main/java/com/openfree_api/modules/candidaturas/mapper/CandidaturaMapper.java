@@ -2,27 +2,43 @@ package com.openfree_api.modules.candidaturas.mapper;
 
 import com.openfree_api.modules.candidaturas.dto.CandidaturaResponse;
 import com.openfree_api.modules.candidaturas.dto.CreateCandidaturaRequest;
+import com.openfree_api.modules.candidaturas.dto.MyApplicationResponse;
 import com.openfree_api.modules.candidaturas.entity.Candidatura;
+import com.openfree_api.modules.jobs.entity.Vaga;
+
 import org.springframework.stereotype.Component;
 
 @Component
 public class CandidaturaMapper {
 
-    public Candidatura toEntity(CreateCandidaturaRequest request) {
+    public Candidatura toEntity(
+            CreateCandidaturaRequest request
+    ) {
 
-        Candidatura candidatura = new Candidatura();
+        Candidatura candidatura =
+                new Candidatura();
 
-        candidatura.setMensagem(request.getMensagem());
-        candidatura.setValorProposto(request.getValorProposto());
+        candidatura.setMensagem(
+                request.getMensagem()
+        );
+
+        candidatura.setValorProposto(
+                request.getValorProposto()
+        );
 
         return candidatura;
     }
 
-    public CandidaturaResponse toResponse(Candidatura candidatura) {
+    public CandidaturaResponse toResponse(
+            Candidatura candidatura
+    ) {
 
-        CandidaturaResponse response = new CandidaturaResponse();
+        CandidaturaResponse response =
+                new CandidaturaResponse();
 
-        response.setId(candidatura.getId());
+        response.setId(
+                candidatura.getId()
+        );
 
         response.setUsuarioId(
                 candidatura.getUsuario().getId()
@@ -44,12 +60,86 @@ public class CandidaturaMapper {
                 candidatura.getVaga().getTitulo()
         );
 
-        response.setMensagem(candidatura.getMensagem());
-        response.setValorProposto(candidatura.getValorProposto());
-        response.setStatus(candidatura.getStatus());
-        response.setEmpresaVisualizou(candidatura.getEmpresaVisualizou());
-        response.setCreatedAt(candidatura.getCreatedAt());
-        response.setCreatedAt(candidatura.getUpdatedAt());
+        response.setMensagem(
+                candidatura.getMensagem()
+        );
+
+        response.setValorProposto(
+                candidatura.getValorProposto()
+        );
+
+        response.setStatus(
+                candidatura.getStatus()
+        );
+
+        response.setEmpresaVisualizou(
+                candidatura.getEmpresaVisualizou()
+        );
+
+        response.setCreatedAt(
+                candidatura.getCreatedAt()
+        );
+
+        response.setUpdatedAt(
+                candidatura.getUpdatedAt()
+        );
+
+        return response;
+    }
+
+    public MyApplicationResponse toMyApplicationResponse(
+            Candidatura candidatura
+    ) {
+
+        MyApplicationResponse response =
+                new MyApplicationResponse();
+
+        Vaga vaga =
+                candidatura.getVaga();
+
+        response.setCandidaturaId(
+                candidatura.getId()
+        );
+
+        response.setVagaId(
+                vaga.getId()
+        );
+
+        response.setTitulo(
+                vaga.getTitulo()
+        );
+
+        response.setEmpresa(
+                vaga.getEmpresa().getNomeFantasia()
+        );
+
+        response.setCidade(
+                vaga.getCidade()
+        );
+
+        response.setEstado(
+                vaga.getEstado()
+        );
+
+        response.setValor(
+                vaga.getValor()
+        );
+
+        response.setDataServico(
+                vaga.getDataServico()
+        );
+
+        response.setStatus(
+                candidatura.getStatus()
+        );
+
+        response.setEmpresaVisualizou(
+                candidatura.getEmpresaVisualizou()
+        );
+
+        response.setDataCandidatura(
+                candidatura.getCreatedAt()
+        );
 
         return response;
     }

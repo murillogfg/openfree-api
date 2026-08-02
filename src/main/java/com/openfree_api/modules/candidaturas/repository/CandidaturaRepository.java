@@ -48,6 +48,16 @@ Optional<Candidatura> findByIdAndVagaEmpresaId(
         Long candidaturaId,
         Long empresaId
 );
+long countByUsuarioId(Long usuarioId);
 
+long countByUsuarioIdAndStatus(
+        Long usuarioId,
+        StatusCandidatura status
+);
+
+
+List<Candidatura> findByUsuarioIdOrderByCreatedAtDesc(
+        Long usuarioId
+);
 
 }
