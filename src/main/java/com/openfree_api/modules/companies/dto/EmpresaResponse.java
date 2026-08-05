@@ -2,6 +2,8 @@ package com.openfree_api.modules.companies.dto;
 
 import java.time.LocalDateTime;
 
+import org.jspecify.annotations.Nullable;
+
 public class EmpresaResponse {
 
     private Long id;
@@ -111,5 +113,10 @@ public class EmpresaResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public @Nullable Object listarTodas() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'listarTodas'");
     }
 }

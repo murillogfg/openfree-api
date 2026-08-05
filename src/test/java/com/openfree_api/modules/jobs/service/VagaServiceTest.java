@@ -37,13 +37,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-
-import com.openfree_api.common.exception.BusinessException;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import static org.mockito.Mockito.never;
 
 import com.openfree_api.common.response.PageResponse;
 import com.openfree_api.modules.jobs.dto.JobFilterRequest;
@@ -52,9 +45,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 

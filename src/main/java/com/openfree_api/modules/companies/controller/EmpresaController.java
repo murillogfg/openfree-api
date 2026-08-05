@@ -3,10 +3,10 @@ package com.openfree_api.modules.companies.controller;
 import com.openfree_api.common.response.ApiResponse;
 import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
-import com.openfree_api.modules.companies.dto.DashboardEmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
 import com.openfree_api.modules.companies.service.EmpresaService;
+import com.openfree_api.modules.dashboard.dto.DashboardEmpresaResponse;
 import com.openfree_api.modules.jobs.dto.VagaResponse;
 import com.openfree_api.modules.jobs.service.VagaService;
 

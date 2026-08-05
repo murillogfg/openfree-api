@@ -1,4 +1,4 @@
-package com.openfree_api.modules.companies.service;
+package com.openfree_api.modules.dashboard.service;
 
 import com.openfree_api.modules.auth.service.EmpresaAuthService;
 import com.openfree_api.modules.companies.dto.CompanyDashboardResponse;

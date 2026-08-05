@@ -25,7 +25,7 @@ import com.openfree_api.modules.candidaturas.dto.MyApplicationResponse;
 
 import com.openfree_api.modules.notifications.entity.NotificationType;
 import com.openfree_api.modules.notifications.service.NotificationService;
-
+import com.openfree_api.modules.chat.service.ChatService;
 
 
 import java.util.List;
@@ -42,16 +42,17 @@ public class CandidaturaService {
     private final VagaRepository vagaRepository;
     private final CandidaturaMapper candidaturaMapper;
         private final NotificationService notificationService;
+        private final ChatService chatService;
 
 
-
-  public CandidaturaService(
+ public CandidaturaService(
         CandidaturaRepository candidaturaRepository,
         VagaRepository vagaRepository,
         CandidaturaMapper candidaturaMapper,
         UsuarioAuthService usuarioAuthService,
         EmpresaAuthService empresaAuthService,
-        NotificationService notificationService
+        NotificationService notificationService,
+        ChatService chatService
 ) {
     this.candidaturaRepository = candidaturaRepository;
     this.vagaRepository = vagaRepository;
@@ -59,7 +60,9 @@ public class CandidaturaService {
     this.usuarioAuthService = usuarioAuthService;
     this.empresaAuthService = empresaAuthService;
     this.notificationService = notificationService;
+    this.chatService = chatService;
 }
+
 
     @Transactional
     public CandidaturaResponse criar(
@@ -268,6 +271,11 @@ public class CandidaturaService {
 
         Candidatura candidaturaSalva =
                 candidaturaRepository.save(candidatura);
+
+        chatService.criarConversaAutomaticamente(
+        candidaturaSalva
+);
+
 
         notificationService.criarNotificacao(
         candidaturaSalva.getUsuario(),

@@ -60,6 +60,16 @@ public class Empresa {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(length = 100)
+    private String cidade;
+
+    @Column(length = 2)
+    private String estado;
+
+    @Column(length = 255)
+    private String site;
+
+
     public Empresa() {
     }
 
@@ -181,5 +191,27 @@ public class Empresa {
         this.id = id;
     }
 
+    public String getCidade() {
+    return cidade;
+    }
 
+    public void setCidade(String cidade) {
+        this.cidade = cidade;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
+    }
 }

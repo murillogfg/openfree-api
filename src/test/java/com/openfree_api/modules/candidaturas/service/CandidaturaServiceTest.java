@@ -38,19 +38,12 @@ import static org.mockito.Mockito.when;
 
 import com.openfree_api.common.exception.BusinessException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.openfree_api.modules.notifications.entity.NotificationType;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import com.openfree_api.modules.chat.service.ChatService;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -80,6 +73,8 @@ class CandidaturaServiceTest {
 
     @InjectMocks
     private CandidaturaService candidaturaService;
+
+
 
     @Test
     void deveCriarCandidaturaComSucesso() {

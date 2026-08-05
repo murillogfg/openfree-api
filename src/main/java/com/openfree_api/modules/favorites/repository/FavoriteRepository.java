@@ -22,4 +22,6 @@ public interface FavoriteRepository
     List<Favorite> findByUsuarioIdOrderByCreatedAtDesc(
             Long usuarioId
     );
+
+    long countByUsuarioId(Long usuarioId);
 }
