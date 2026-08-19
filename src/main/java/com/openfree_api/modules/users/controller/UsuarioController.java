@@ -11,6 +11,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
+
+import com.openfree_api.modules.users.dto.UpdateUsuarioRequest;
+import com.openfree_api.modules.users.dto.UpdateUsuarioRequest;
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
+
+
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
@@ -81,6 +90,67 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/profile")
+public ResponseEntity<ApiResponse<UsuarioResponse>>
+buscarPerfilPublico(
+        @PathVariable Long id
+) {
 
-    
+    UsuarioResponse usuario =
+            usuarioService.buscarPerfilPublico(
+                    id
+            );
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Perfil público carregado com sucesso.",
+                    usuario
+            )
+    );
+}
+
+
+
+
+ @GetMapping("/me")
+public ResponseEntity<ApiResponse<UsuarioResponse>>
+buscarMeuPerfil(
+        Authentication authentication
+) {
+
+    UsuarioResponse usuario =
+            usuarioService.buscarMeuPerfil(
+                    authentication
+            );
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Perfil carregado com sucesso.",
+                    usuario
+            )
+    );
+}
+
+@PatchMapping("/me")
+public ResponseEntity<ApiResponse<UsuarioResponse>>
+atualizarMeuPerfil(
+        @Valid
+        @RequestBody
+        UpdateUsuarioRequest request,
+        Authentication authentication
+) {
+
+    UsuarioResponse usuario =
+            usuarioService.atualizarMeuPerfil(
+                    request,
+                    authentication
+            );
+
+    return ResponseEntity.ok(
+            ApiResponse.success(
+                    "Perfil atualizado com sucesso.",
+                    usuario
+            )
+    );
+}
 }

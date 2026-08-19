@@ -1,12 +1,14 @@
 package com.openfree_api.modules.companies.service;
 
 import com.openfree_api.common.exception.BusinessException;
+import com.openfree_api.modules.auth.service.EmpresaAuthService;
 import com.openfree_api.modules.candidaturas.entity.StatusCandidatura;
 import com.openfree_api.modules.candidaturas.repository.CandidaturaRepository;
 import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
+import com.openfree_api.modules.companies.dto.UpdateEmpresaRequest;
 import com.openfree_api.modules.companies.entity.CargoEmpresa;
 import com.openfree_api.modules.companies.entity.Empresa;
 import com.openfree_api.modules.companies.entity.EmpresaUsuario;
@@ -18,16 +20,15 @@ import com.openfree_api.modules.dashboard.dto.DashboardEmpresaResponse;
 import com.openfree_api.modules.jobs.entity.StatusVaga;
 import com.openfree_api.modules.jobs.repository.VagaRepository;
 import com.openfree_api.modules.users.entity.Usuario;
+import com.openfree_api.modules.users.enums.Role;
 import com.openfree_api.modules.users.repository.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.openfree_api.modules.users.enums.Role;
 
 @Service
 public class EmpresaService {
@@ -39,6 +40,7 @@ public class EmpresaService {
     private final EmpresaUsuarioMapper empresaUsuarioMapper;
     private final VagaRepository vagaRepository;
     private final CandidaturaRepository candidaturaRepository;
+    private final EmpresaAuthService empresaAuthService;
 
     public EmpresaService(
             EmpresaRepository empresaRepository,
@@ -47,7 +49,8 @@ public class EmpresaService {
             UsuarioRepository usuarioRepository,
             EmpresaUsuarioMapper empresaUsuarioMapper,
             VagaRepository vagaRepository,
-            CandidaturaRepository candidaturaRepository
+            CandidaturaRepository candidaturaRepository,
+            EmpresaAuthService empresaAuthService
     ) {
         this.empresaRepository = empresaRepository;
         this.empresaMapper = empresaMapper;
@@ -56,71 +59,216 @@ public class EmpresaService {
         this.empresaUsuarioMapper = empresaUsuarioMapper;
         this.vagaRepository = vagaRepository;
         this.candidaturaRepository = candidaturaRepository;
+        this.empresaAuthService = empresaAuthService;
     }
 
     public List<EmpresaResponse> listarTodas() {
+
         return empresaRepository.findAll()
                 .stream()
                 .map(empresaMapper::toResponse)
                 .toList();
     }
 
-    public Optional<EmpresaResponse> buscarPorId(Long id) {
-        return empresaRepository.findById(id)
+    public Optional<EmpresaResponse> buscarPorId(
+            Long id
+    ) {
+
+        return empresaRepository
+                .findById(id)
                 .map(empresaMapper::toResponse);
     }
 
- @Transactional
-public EmpresaResponse criar(
-        CreateEmpresaRequest request,
-        Authentication authentication
-) {
+    @Transactional(readOnly = true)
+    public EmpresaResponse buscarMinhaEmpresa(
+            Authentication authentication
+    ) {
 
-    if (empresaRepository.existsByCnpj(request.getCnpj())) {
-        throw new BusinessException(
-                "Já existe uma empresa cadastrada com este CNPJ."
+        Empresa empresa =
+                empresaAuthService
+                        .getEmpresaLogada(
+                                authentication
+                        );
+
+        return empresaMapper.toResponse(
+                empresa
         );
     }
 
-    if (empresaRepository.existsByEmail(request.getEmail())) {
-        throw new BusinessException(
-                "Já existe uma empresa cadastrada com este e-mail."
-        );
-    }
+    @Transactional
+    public EmpresaResponse atualizarMinhaEmpresa(
+            UpdateEmpresaRequest request,
+            Authentication authentication
+    ) {
 
-    String emailUsuarioLogado = authentication.getName();
+        Empresa empresa =
+                empresaAuthService
+                        .getEmpresaLogada(
+                                authentication
+                        );
 
-    Usuario owner = usuarioRepository
-            .findByEmail(emailUsuarioLogado)
-            .orElseThrow(() ->
-                    new BusinessException(
-                            "Usuário autenticado não encontrado."
-                    )
+        if (request.getNomeFantasia() != null) {
+
+            empresa.setNomeFantasia(
+                    request
+                            .getNomeFantasia()
+                            .trim()
             );
+        }
 
-    Empresa empresa = empresaMapper.toEntity(request);
+        if (request.getTelefone() != null) {
 
-empresa.setUsuario(owner);
+            empresa.setTelefone(
+                    request
+                            .getTelefone()
+                            .trim()
+            );
+        }
 
-Empresa empresaSalva = empresaRepository.save(empresa);
+        if (request.getDescricao() != null) {
 
-EmpresaUsuario empresaUsuario = new EmpresaUsuario();
-empresaUsuario.setEmpresa(empresaSalva);
-empresaUsuario.setUsuario(owner);
-empresaUsuario.setCargo(CargoEmpresa.OWNER);
-empresaUsuario.setAtivo(true);
+            empresa.setDescricao(
+                    request
+                            .getDescricao()
+                            .trim()
+            );
+        }
 
-empresaUsuarioRepository.save(empresaUsuario);
+        if (request.getCidade() != null) {
 
-owner.setRole(Role.EMPRESA);
-usuarioRepository.save(owner);
+            empresa.setCidade(
+                    request
+                            .getCidade()
+                            .trim()
+            );
+        }
 
-return empresaMapper.toResponse(empresaSalva);
-}
+        if (request.getEstado() != null) {
 
-    public boolean excluir(Long id) {
+            empresa.setEstado(
+                    request
+                            .getEstado()
+                            .trim()
+                            .toUpperCase()
+            );
+        }
 
-        if (!empresaRepository.existsById(id)) {
+        if (request.getSite() != null) {
+
+            empresa.setSite(
+                    request
+                            .getSite()
+                            .trim()
+            );
+        }
+
+        Empresa atualizada =
+                empresaRepository.save(
+                        empresa
+                );
+
+        return empresaMapper.toResponse(
+                atualizada
+        );
+    }
+
+    @Transactional
+    public EmpresaResponse criar(
+            CreateEmpresaRequest request,
+            Authentication authentication
+    ) {
+
+        if (
+                empresaRepository.existsByCnpj(
+                        request.getCnpj()
+                )
+        ) {
+
+            throw new BusinessException(
+                    "Já existe uma empresa cadastrada com este CNPJ."
+            );
+        }
+
+        if (
+                empresaRepository.existsByEmail(
+                        request.getEmail()
+                )
+        ) {
+
+            throw new BusinessException(
+                    "Já existe uma empresa cadastrada com este e-mail."
+            );
+        }
+
+        String emailUsuarioLogado =
+                authentication.getName();
+
+        Usuario owner =
+                usuarioRepository
+                        .findByEmail(
+                                emailUsuarioLogado
+                        )
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "Usuário autenticado não encontrado."
+                                )
+                        );
+
+        Empresa empresa =
+                empresaMapper.toEntity(
+                        request
+                );
+
+        empresa.setUsuario(owner);
+
+        Empresa empresaSalva =
+                empresaRepository.save(
+                        empresa
+                );
+
+        EmpresaUsuario empresaUsuario =
+                new EmpresaUsuario();
+
+        empresaUsuario.setEmpresa(
+                empresaSalva
+        );
+
+        empresaUsuario.setUsuario(
+                owner
+        );
+
+        empresaUsuario.setCargo(
+                CargoEmpresa.OWNER
+        );
+
+        empresaUsuario.setAtivo(
+                true
+        );
+
+        empresaUsuarioRepository.save(
+                empresaUsuario
+        );
+
+        owner.setRole(
+                Role.EMPRESA
+        );
+
+        usuarioRepository.save(
+                owner
+        );
+
+        return empresaMapper.toResponse(
+                empresaSalva
+        );
+    }
+
+    public boolean excluir(
+            Long id
+    ) {
+
+        if (
+                !empresaRepository.existsById(id)
+        ) {
             return false;
         }
 
@@ -129,16 +277,29 @@ return empresaMapper.toResponse(empresaSalva);
         return true;
     }
 
-    public List<EmpresaUsuarioResponse> listarMembros(Long empresaId) {
+    public List<EmpresaUsuarioResponse> listarMembros(
+            Long empresaId
+    ) {
 
-        if (!empresaRepository.existsById(empresaId)) {
-            throw new BusinessException("Empresa não encontrada.");
+        if (
+                !empresaRepository.existsById(
+                        empresaId
+                )
+        ) {
+
+            throw new BusinessException(
+                    "Empresa não encontrada."
+            );
         }
 
         return empresaUsuarioRepository
-                .findByEmpresaId(empresaId)
+                .findByEmpresaId(
+                        empresaId
+                )
                 .stream()
-                .map(empresaUsuarioMapper::toResponse)
+                .map(
+                        empresaUsuarioMapper::toResponse
+                )
                 .toList();
     }
 
@@ -147,77 +308,123 @@ return empresaMapper.toResponse(empresaSalva);
             AddEmpresaUsuarioRequest request
     ) {
 
-        Empresa empresa = empresaRepository
-                .findById(empresaId)
-                .orElseThrow(() ->
-                        new BusinessException("Empresa não encontrada.")
-                );
+        Empresa empresa =
+                empresaRepository
+                        .findById(
+                                empresaId
+                        )
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "Empresa não encontrada."
+                                )
+                        );
 
-        Usuario usuario = usuarioRepository
-                .findById(request.getUsuarioId())
-                .orElseThrow(() ->
-                        new BusinessException("Usuário não encontrado.")
-                );
+        Usuario usuario =
+                usuarioRepository
+                        .findById(
+                                request.getUsuarioId()
+                        )
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "Usuário não encontrado."
+                                )
+                        );
 
-        if (empresaUsuarioRepository.existsByEmpresaIdAndUsuarioId(
-                empresaId,
-                request.getUsuarioId()
-        )) {
+        if (
+                empresaUsuarioRepository
+                        .existsByEmpresaIdAndUsuarioId(
+                                empresaId,
+                                request.getUsuarioId()
+                        )
+        ) {
+
             throw new BusinessException(
                     "Este usuário já pertence à empresa."
             );
         }
 
-        EmpresaUsuario empresaUsuario = new EmpresaUsuario();
-        empresaUsuario.setEmpresa(empresa);
-        empresaUsuario.setUsuario(usuario);
-        empresaUsuario.setCargo(request.getCargo());
-        empresaUsuario.setAtivo(true);
+        EmpresaUsuario empresaUsuario =
+                new EmpresaUsuario();
+
+        empresaUsuario.setEmpresa(
+                empresa
+        );
+
+        empresaUsuario.setUsuario(
+                usuario
+        );
+
+        empresaUsuario.setCargo(
+                request.getCargo()
+        );
+
+        empresaUsuario.setAtivo(
+                true
+        );
 
         EmpresaUsuario salvo =
-                empresaUsuarioRepository.save(empresaUsuario);
+                empresaUsuarioRepository.save(
+                        empresaUsuario
+                );
 
-        return empresaUsuarioMapper.toResponse(salvo);
+        return empresaUsuarioMapper.toResponse(
+                salvo
+        );
     }
 
-    public DashboardEmpresaResponse dashboard(Long empresaId) {
+    public DashboardEmpresaResponse dashboard(
+            Long empresaId
+    ) {
 
-        if (!empresaRepository.existsById(empresaId)) {
-            throw new BusinessException("Empresa não encontrada.");
+        if (
+                !empresaRepository.existsById(
+                        empresaId
+                )
+        ) {
+
+            throw new BusinessException(
+                    "Empresa não encontrada."
+            );
         }
 
         DashboardEmpresaResponse response =
                 new DashboardEmpresaResponse();
 
         response.setVagasPublicadas(
-                vagaRepository.countByEmpresaId(empresaId)
-        );
-
-        response.setVagasAbertas(
-                vagaRepository.countByEmpresaIdAndStatus(
-                        empresaId,
-                        StatusVaga.PUBLICADA
-                )
-        );
-
-        response.setVagasFinalizadas(
-                vagaRepository.countByEmpresaIdAndStatus(
-                        empresaId,
-                        StatusVaga.FINALIZADA
-                )
-        );
-
-        response.setCandidaturasRecebidas(
-                candidaturaRepository.countByVagaEmpresaId(
+                vagaRepository.countByEmpresaId(
                         empresaId
                 )
         );
 
+        response.setVagasAbertas(
+                vagaRepository
+                        .countByEmpresaIdAndStatus(
+                                empresaId,
+                                StatusVaga.PUBLICADA
+                        )
+        );
+
+        response.setVagasFinalizadas(
+                vagaRepository
+                        .countByEmpresaIdAndStatus(
+                                empresaId,
+                                StatusVaga.FINALIZADA
+                        )
+        );
+
+        response.setCandidaturasRecebidas(
+                candidaturaRepository
+                        .countByVagaEmpresaId(
+                                empresaId
+                        )
+        );
+
         response.setProfissionaisContratados(
-                candidaturaRepository.countByVagaEmpresaIdAndStatus(
-                        empresaId,
-                        StatusCandidatura.ACEITA
-                )
+                candidaturaRepository
+                        .countByVagaEmpresaIdAndStatus(
+                                empresaId,
+                                StatusCandidatura.ACEITA
+                        )
         );
 
         return response;

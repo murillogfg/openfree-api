@@ -2,7 +2,6 @@ package com.openfree_api.modules.companies.entity;
 
 import com.openfree_api.modules.users.entity.Usuario;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;    
 
 
@@ -214,4 +213,7 @@ public class Empresa {
     public void setSite(String site) {
         this.site = site;
     }
+
+    
+
 }

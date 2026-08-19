@@ -11,8 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.openfree_api.modules.candidaturas.dto.MyApplicationResponse;
-
 import java.util.List;
 
 @RestController
@@ -112,22 +110,4 @@ public class CandidaturaController {
 
 
 
-    @GetMapping("/me")
-public ResponseEntity<ApiResponse<List<MyApplicationResponse>>>
-listarMinhasCandidaturas(
-        Authentication authentication
-) {
-
-    List<MyApplicationResponse> candidaturas =
-            candidaturaService.listarMinhasCandidaturas(
-                    authentication
-            );
-
-    return ResponseEntity.ok(
-            ApiResponse.success(
-                    "Minhas candidaturas listadas com sucesso.",
-                    candidaturas
-            )
-    );
-}
 }

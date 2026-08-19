@@ -44,37 +44,47 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import com.openfree_api.modules.chat.service.ChatService;
+import com.openfree_api.modules.contracts.service.ContractService;
+import com.openfree_api.modules.payments.service.PaymentService;
+
 
 
 @ExtendWith(MockitoExtension.class)
 class CandidaturaServiceTest {
 
-    @Mock
-    private CandidaturaRepository candidaturaRepository;
+   @Mock
+private CandidaturaRepository candidaturaRepository;
 
-    @Mock
-    private VagaRepository vagaRepository;
+@Mock
+private VagaRepository vagaRepository;
 
-    @Mock
-    private UsuarioAuthService usuarioAuthService;
+@Mock
+private UsuarioAuthService usuarioAuthService;
 
-    @Mock
-    private EmpresaAuthService empresaAuthService;
+@Mock
+private EmpresaAuthService empresaAuthService;
 
-    @Mock
-    private NotificationService notificationService;
+@Mock
+private NotificationService notificationService;
 
-    @Mock
-    private Authentication authentication;
+@Mock
+private ContractService contractService;
 
-    @Spy
-    private CandidaturaMapper candidaturaMapper =
-            new CandidaturaMapper();
+@Mock
+private ChatService chatService;
 
-    @InjectMocks
-    private CandidaturaService candidaturaService;
+@Mock
+private PaymentService paymentService;
 
+@Mock
+private Authentication authentication;
 
+@Spy
+private CandidaturaMapper candidaturaMapper =
+        new CandidaturaMapper();
+
+@InjectMocks
+private CandidaturaService candidaturaService;
 
     @Test
     void deveCriarCandidaturaComSucesso() {

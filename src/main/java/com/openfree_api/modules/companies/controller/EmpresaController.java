@@ -5,27 +5,32 @@ import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
 import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
 import com.openfree_api.modules.companies.dto.EmpresaResponse;
 import com.openfree_api.modules.companies.dto.EmpresaUsuarioResponse;
+import com.openfree_api.modules.companies.dto.UpdateEmpresaRequest;
 import com.openfree_api.modules.companies.service.EmpresaService;
 import com.openfree_api.modules.dashboard.dto.DashboardEmpresaResponse;
 import com.openfree_api.modules.jobs.dto.VagaResponse;
 import com.openfree_api.modules.jobs.service.VagaService;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/companies")
 public class EmpresaController {
 
-        private final VagaService vagaService;
-private final EmpresaService empresaService;
+    private final VagaService vagaService;
+    private final EmpresaService empresaService;
 
-    public EmpresaController(EmpresaService empresaService, VagaService vagaService) {
+    public EmpresaController(
+            EmpresaService empresaService,
+            VagaService vagaService
+    ) {
         this.vagaService = vagaService;
         this.empresaService = empresaService;
     }
@@ -33,7 +38,8 @@ private final EmpresaService empresaService;
     @GetMapping
     public ResponseEntity<ApiResponse<List<EmpresaResponse>>> listarTodas() {
 
-        List<EmpresaResponse> empresas = empresaService.listarTodas();
+        List<EmpresaResponse> empresas =
+                empresaService.listarTodas();
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -43,10 +49,53 @@ private final EmpresaService empresaService;
         );
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<EmpresaResponse>>
+    buscarMinhaEmpresa(
+            Authentication authentication
+    ) {
+
+        EmpresaResponse empresa =
+                empresaService.buscarMinhaEmpresa(
+                        authentication
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Perfil empresarial carregado com sucesso.",
+                        empresa
+                )
+        );
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<EmpresaResponse>>
+    atualizarMinhaEmpresa(
+            @Valid
+            @RequestBody
+            UpdateEmpresaRequest request,
+            Authentication authentication
+    ) {
+
+        EmpresaResponse empresa =
+                empresaService.atualizarMinhaEmpresa(
+                        request,
+                        authentication
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Perfil empresarial atualizado com sucesso.",
+                        empresa
+                )
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<EmpresaResponse>> buscarPorId(
             @PathVariable Long id
     ) {
+
         return empresaService.buscarPorId(id)
                 .map(empresa ->
                         ResponseEntity.ok(
@@ -56,106 +105,133 @@ private final EmpresaService empresaService;
                                 )
                         )
                 )
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(
+                        ResponseEntity.notFound().build()
+                );
     }
 
-   @PostMapping
-public ResponseEntity<ApiResponse<EmpresaResponse>> criar(
-        @Valid @RequestBody CreateEmpresaRequest request,
-        Authentication authentication
-) {
+    @PostMapping
+    public ResponseEntity<ApiResponse<EmpresaResponse>> criar(
+            @Valid
+            @RequestBody
+            CreateEmpresaRequest request,
+            Authentication authentication
+    ) {
 
-    EmpresaResponse empresa = empresaService.criar(
-            request,
-            authentication
-    );
+        EmpresaResponse empresa =
+                empresaService.criar(
+                        request,
+                        authentication
+                );
 
-    return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(
-                    ApiResponse.success(
-                            "Empresa criada com sucesso.",
-                            empresa
-                    )
-            );
-}
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.success(
+                                "Empresa criada com sucesso.",
+                                empresa
+                        )
+                );
+    }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+    public ResponseEntity<Void> excluir(
+            @PathVariable Long id
+    ) {
 
-        boolean excluida = empresaService.excluir(id);
+        boolean excluida =
+                empresaService.excluir(id);
 
         if (!excluida) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity
+                    .notFound()
+                    .build();
         }
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 
     @GetMapping("/{empresaId}/members")
-public ResponseEntity<ApiResponse<List<EmpresaUsuarioResponse>>> listarMembros(
-        @PathVariable Long empresaId
-) {
+    public ResponseEntity<ApiResponse<List<EmpresaUsuarioResponse>>>
+    listarMembros(
+            @PathVariable Long empresaId
+    ) {
 
-    List<EmpresaUsuarioResponse> membros =
-            empresaService.listarMembros(empresaId);
+        List<EmpresaUsuarioResponse> membros =
+                empresaService.listarMembros(
+                        empresaId
+                );
 
-    return ResponseEntity.ok(
-            ApiResponse.success(
-                    "Membros da empresa listados com sucesso.",
-                    membros
-            )
-    );
-}
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Membros da empresa listados com sucesso.",
+                        membros
+                )
+        );
+    }
 
-@PostMapping("/{empresaId}/members")
-public ResponseEntity<ApiResponse<EmpresaUsuarioResponse>> adicionarMembro(
-        @PathVariable Long empresaId,
-        @Valid @RequestBody AddEmpresaUsuarioRequest request
-) {
+    @PostMapping("/{empresaId}/members")
+    public ResponseEntity<ApiResponse<EmpresaUsuarioResponse>>
+    adicionarMembro(
+            @PathVariable Long empresaId,
+            @Valid
+            @RequestBody
+            AddEmpresaUsuarioRequest request
+    ) {
 
-    EmpresaUsuarioResponse membro =
-            empresaService.adicionarMembro(empresaId, request);
+        EmpresaUsuarioResponse membro =
+                empresaService.adicionarMembro(
+                        empresaId,
+                        request
+                );
 
-    return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(
-                    ApiResponse.success(
-                            "Membro adicionado com sucesso.",
-                            membro
-                    )
-            );
-}
-        @GetMapping("/{empresaId}/jobs")
-public ResponseEntity<ApiResponse<List<VagaResponse>>> listarVagas(
-        @PathVariable Long empresaId
-) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.success(
+                                "Membro adicionado com sucesso.",
+                                membro
+                        )
+                );
+    }
 
-    List<VagaResponse> vagas =
-            vagaService.listarPorEmpresa(empresaId);
+    @GetMapping("/{empresaId}/jobs")
+    public ResponseEntity<ApiResponse<List<VagaResponse>>>
+    listarVagas(
+            @PathVariable Long empresaId
+    ) {
 
-    return ResponseEntity.ok(
-            ApiResponse.success(
-                    "Vagas da empresa listadas com sucesso.",
-                    vagas
-            )
-    );
-}
-        @GetMapping("/{empresaId}/dashboard")
-public ResponseEntity<ApiResponse<DashboardEmpresaResponse>> dashboard(
-        @PathVariable Long empresaId
-) {
+        List<VagaResponse> vagas =
+                vagaService.listarPorEmpresa(
+                        empresaId
+                );
 
-    DashboardEmpresaResponse dashboard =
-            empresaService.dashboard(empresaId);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Vagas da empresa listadas com sucesso.",
+                        vagas
+                )
+        );
+    }
 
-    return ResponseEntity.ok(
-            ApiResponse.success(
-                    "Dashboard carregado com sucesso.",
-                    dashboard
-            )
-    );
-}
+    @GetMapping("/{empresaId}/dashboard")
+    public ResponseEntity<ApiResponse<DashboardEmpresaResponse>>
+    dashboard(
+            @PathVariable Long empresaId
+    ) {
 
+        DashboardEmpresaResponse dashboard =
+                empresaService.dashboard(
+                        empresaId
+                );
 
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Dashboard carregado com sucesso.",
+                        dashboard
+                )
+        );
+    }
 }

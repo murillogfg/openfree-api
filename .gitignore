@@ -35,3 +35,28 @@ build/
 data/
 *.mv.db
 *.trace.db
+
+# Maven
+target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# OpenFree - dados locais
+uploads/
+data/
+
+# Secrets / ambiente local
+.env
+.env.*
+application-local.properties
+
+# Logs
+*.log
+logs/

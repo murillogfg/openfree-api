@@ -70,6 +70,10 @@ class AuthServiceTest {
                 jwtService.gerarToken(userDetails)
         ).thenReturn("token-jwt-teste");
 
+        when(
+        jwtService.getExpiration()
+        ).thenReturn(3_600_000L);
+
         LoginResponse response =
                 authService.login(request);
 

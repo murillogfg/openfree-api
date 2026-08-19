@@ -2,8 +2,6 @@ package com.openfree_api.modules.companies.dto;
 
 import java.time.LocalDateTime;
 
-import org.jspecify.annotations.Nullable;
-
 public class EmpresaResponse {
 
     private Long id;
@@ -14,10 +12,19 @@ public class EmpresaResponse {
     private String telefone;
     private String descricao;
     private String logo;
+
     private Boolean verificada;
     private Boolean ativa;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private String cidade;
+    private String estado;
+    private String site;
+
+    public EmpresaResponse() {
+    }
 
     public Long getId() {
         return id;
@@ -31,7 +38,9 @@ public class EmpresaResponse {
         return razaoSocial;
     }
 
-    public void setRazaoSocial(String razaoSocial) {
+    public void setRazaoSocial(
+            String razaoSocial
+    ) {
         this.razaoSocial = razaoSocial;
     }
 
@@ -39,7 +48,9 @@ public class EmpresaResponse {
         return nomeFantasia;
     }
 
-    public void setNomeFantasia(String nomeFantasia) {
+    public void setNomeFantasia(
+            String nomeFantasia
+    ) {
         this.nomeFantasia = nomeFantasia;
     }
 
@@ -47,7 +58,9 @@ public class EmpresaResponse {
         return cnpj;
     }
 
-    public void setCnpj(String cnpj) {
+    public void setCnpj(
+            String cnpj
+    ) {
         this.cnpj = cnpj;
     }
 
@@ -55,7 +68,9 @@ public class EmpresaResponse {
         return email;
     }
 
-    public void setEmail(String email) {
+    public void setEmail(
+            String email
+    ) {
         this.email = email;
     }
 
@@ -63,7 +78,9 @@ public class EmpresaResponse {
         return telefone;
     }
 
-    public void setTelefone(String telefone) {
+    public void setTelefone(
+            String telefone
+    ) {
         this.telefone = telefone;
     }
 
@@ -71,7 +88,9 @@ public class EmpresaResponse {
         return descricao;
     }
 
-    public void setDescricao(String descricao) {
+    public void setDescricao(
+            String descricao
+    ) {
         this.descricao = descricao;
     }
 
@@ -79,7 +98,9 @@ public class EmpresaResponse {
         return logo;
     }
 
-    public void setLogo(String logo) {
+    public void setLogo(
+            String logo
+    ) {
         this.logo = logo;
     }
 
@@ -87,7 +108,9 @@ public class EmpresaResponse {
         return verificada;
     }
 
-    public void setVerificada(Boolean verificada) {
+    public void setVerificada(
+            Boolean verificada
+    ) {
         this.verificada = verificada;
     }
 
@@ -95,7 +118,9 @@ public class EmpresaResponse {
         return ativa;
     }
 
-    public void setAtiva(Boolean ativa) {
+    public void setAtiva(
+            Boolean ativa
+    ) {
         this.ativa = ativa;
     }
 
@@ -103,7 +128,9 @@ public class EmpresaResponse {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(
+            LocalDateTime createdAt
+    ) {
         this.createdAt = createdAt;
     }
 
@@ -111,12 +138,45 @@ public class EmpresaResponse {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(
+            LocalDateTime updatedAt
+    ) {
         this.updatedAt = updatedAt;
     }
 
-    public @Nullable Object listarTodas() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'listarTodas'");
+    public String getCidade() {
+        return cidade;
     }
+
+    public void setCidade(
+            String cidade
+    ) {
+        this.cidade = cidade;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(
+            String estado
+    ) {
+        this.estado = estado;
+    }
+
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(
+            String site
+    ) {
+        this.site = site;
+    }
+
 }
+
+   // public void listarTodas() {
+        // TODO Auto-generated method stub
+    //    throw new UnsupportedOperationException("Unimplemented method 'listarTodas'");
+ //   }

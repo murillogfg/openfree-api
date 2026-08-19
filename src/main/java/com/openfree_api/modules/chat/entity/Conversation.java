@@ -101,6 +101,11 @@ public class Conversation {
         status = ConversationStatus.ENCERRADA;
     }
 
+    public void reabrir() {
+    status = ConversationStatus.ATIVA;
+    atualizarAtividade();
+    }
+
     public boolean estaAtiva() {
         return status == ConversationStatus.ATIVA;
     }

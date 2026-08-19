@@ -36,6 +36,26 @@ public class CreateEmpresaRequest {
     @Size(max = 500, message = "A URL da logo deve ter no máximo 500 caracteres.")
     private String logo;
 
+    @Size(
+        max = 100,
+        message = "A cidade deve ter no máximo 100 caracteres."
+        )
+        private String cidade;
+
+        @Size(
+                min = 2,
+                max = 2,
+                message = "O estado deve conter a sigla com 2 caracteres."
+        )
+        private String estado;
+
+        @Size(
+                max = 255,
+                message = "O site deve ter no máximo 255 caracteres."
+        )
+private String site;
+
+
     public String getRazaoSocial() {
         return razaoSocial;
     }
@@ -91,6 +111,28 @@ public class CreateEmpresaRequest {
     public void setLogo(String logo) {
         this.logo = logo;
     }
+    public String getCidade() {
+    return cidade;
+    }
 
+    public void setCidade(String cidade) {
+        this.cidade = cidade;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
+    }
 
 }

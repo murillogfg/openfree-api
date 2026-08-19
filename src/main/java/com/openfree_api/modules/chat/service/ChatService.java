@@ -447,37 +447,66 @@ public List<MessageResponse> listarMensagens(
     ) {
     }
 
-    @Transactional
+   @Transactional
 public ConversationResponse criarConversaAutomaticamente(
         Candidatura candidatura
 ) {
 
-    if (candidatura.getStatus() != StatusCandidatura.ACEITA) {
+    if (
+        candidatura.getStatus()
+                != StatusCandidatura.ACEITA
+    ) {
         throw new BusinessException(
                 "O chat somente pode ser criado para candidaturas aceitas."
         );
     }
 
     return conversationRepository
-            .findByCandidaturaId(candidatura.getId())
-            .map(conversation ->
-                    conversationMapper.toResponse(
-                            conversation,
-                            0L
-                    )
+            .findByCandidaturaId(
+                    candidatura.getId()
             )
+            .map(conversation -> {
+
+                if (!conversation.estaAtiva()) {
+
+                    conversation.reabrir();
+
+                    conversation =
+                            conversationRepository.save(
+                                    conversation
+                            );
+
+                    log.info(
+                            "Conversa reaberta automaticamente. conversationId={}, candidaturaId={}",
+                            conversation.getId(),
+                            candidatura.getId()
+                    );
+                }
+
+                return conversationMapper.toResponse(
+                        conversation,
+                        0L
+                );
+            })
             .orElseGet(() -> {
 
                 Conversation conversation =
                         new Conversation();
 
-                conversation.setCandidatura(candidatura);
-                conversation.setEmpresa(
-                        candidatura.getVaga().getEmpresa()
+                conversation.setCandidatura(
+                        candidatura
                 );
+
+                conversation.setEmpresa(
+                        candidatura
+                                .getVaga()
+                                .getEmpresa()
+                );
+
                 conversation.setUsuario(
                         candidatura.getUsuario()
                 );
+
                 conversation.setStatus(
                         ConversationStatus.ATIVA
                 );
@@ -499,6 +528,4 @@ public ConversationResponse criarConversaAutomaticamente(
                 );
             });
 }
-
-
 }

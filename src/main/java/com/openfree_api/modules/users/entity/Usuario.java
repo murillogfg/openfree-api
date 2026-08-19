@@ -170,5 +170,12 @@ public class Usuario {
     public void setPortfolioUrl(String portfolioUrl) {
         this.portfolioUrl = portfolioUrl;
     }
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    
+    private String avatar;
+
+    private String curriculo;
         
 }

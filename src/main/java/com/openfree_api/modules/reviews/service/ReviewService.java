@@ -7,6 +7,7 @@ import com.openfree_api.modules.candidaturas.entity.Candidatura;
 import com.openfree_api.modules.candidaturas.entity.StatusCandidatura;
 import com.openfree_api.modules.candidaturas.repository.CandidaturaRepository;
 import com.openfree_api.modules.companies.entity.Empresa;
+import com.openfree_api.modules.contracts.repository.ContractRepository;
 import com.openfree_api.modules.reviews.dto.CreateReviewRequest;
 import com.openfree_api.modules.reviews.dto.RatingSummaryResponse;
 import com.openfree_api.modules.reviews.dto.ReviewResponse;
@@ -15,6 +16,10 @@ import com.openfree_api.modules.reviews.entity.ReviewAuthorType;
 import com.openfree_api.modules.reviews.mapper.ReviewMapper;
 import com.openfree_api.modules.reviews.repository.ReviewRepository;
 import com.openfree_api.modules.users.entity.Usuario;
+
+import com.openfree_api.modules.contracts.entity.Contract;
+import com.openfree_api.modules.contracts.entity.ContractStatus;
+import com.openfree_api.modules.contracts.repository.ContractRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,19 +40,23 @@ public class ReviewService {
     private final ReviewMapper reviewMapper;
     private final EmpresaAuthService empresaAuthService;
     private final UsuarioAuthService usuarioAuthService;
+    private final ContractRepository contractRepository;
+
 
     public ReviewService(
             ReviewRepository reviewRepository,
             CandidaturaRepository candidaturaRepository,
             ReviewMapper reviewMapper,
             EmpresaAuthService empresaAuthService,
-            UsuarioAuthService usuarioAuthService
+            UsuarioAuthService usuarioAuthService,
+            ContractRepository contractRepository
     ) {
         this.reviewRepository = reviewRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.reviewMapper = reviewMapper;
         this.empresaAuthService = empresaAuthService;
         this.usuarioAuthService = usuarioAuthService;
+        this.contractRepository = contractRepository;
     }
 
     /*
@@ -77,10 +86,9 @@ public class ReviewService {
                                 )
                         );
 
-        validarCandidaturaAceita(
-                candidatura
-        );
-
+       validarContratoConcluido1(
+        candidatura.getId()
+);
         validarAvaliacaoDuplicada(
                 candidaturaId,
                 ReviewAuthorType.EMPRESA
@@ -160,8 +168,8 @@ public class ReviewService {
             );
         }
 
-        validarCandidaturaAceita(
-                candidatura
+        validarContratoConcluido1(
+                candidatura.getId()
         );
 
         validarAvaliacaoDuplicada(
@@ -322,15 +330,24 @@ public class ReviewService {
         return review;
     }
 
-    private void validarCandidaturaAceita(
-            Candidatura candidatura
+    private void validarContratoConcluido1(
+            Long candidaturaId
     ) {
 
-        if (candidatura.getStatus()
-                != StatusCandidatura.ACEITA) {
+        Contract contract =
+                contractRepository
+                        .findByCandidaturaId(candidaturaId)
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "Contrato da candidatura não encontrado."
+                                )
+                        );
+
+        if (contract.getStatus()
+                != ContractStatus.CONCLUIDO) {
 
             throw new BusinessException(
-                    "Somente candidaturas aceitas podem receber avaliações."
+                    "A avaliação só pode ser realizada após a conclusão do serviço."
             );
         }
     }
@@ -351,4 +368,27 @@ public class ReviewService {
             );
         }
     }
+
+    private void validarContratoConcluido(
+        Long candidaturaId
+) {
+
+    Contract contract =
+            contractRepository
+                    .findByCandidaturaId(candidaturaId)
+                    .orElseThrow(() ->
+                            new BusinessException(
+                                    "Contrato da candidatura não encontrado."
+                            )
+                    );
+
+    if (contract.getStatus()
+            != ContractStatus.CONCLUIDO) {
+
+        throw new BusinessException(
+                "A avaliação só pode ser realizada após a conclusão do serviço."
+        );
+    }
+}
+
 }

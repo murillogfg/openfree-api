@@ -26,6 +26,8 @@ import com.openfree_api.modules.candidaturas.dto.MyApplicationResponse;
 import com.openfree_api.modules.notifications.entity.NotificationType;
 import com.openfree_api.modules.notifications.service.NotificationService;
 import com.openfree_api.modules.chat.service.ChatService;
+import com.openfree_api.modules.payments.service.PaymentService;
+import com.openfree_api.modules.contracts.service.ContractService;
 
 
 import java.util.List;
@@ -43,16 +45,21 @@ public class CandidaturaService {
     private final CandidaturaMapper candidaturaMapper;
         private final NotificationService notificationService;
         private final ChatService chatService;
+        private final PaymentService paymentService;
+        private final ContractService contractService;
+        
 
 
- public CandidaturaService(
+public CandidaturaService(
         CandidaturaRepository candidaturaRepository,
         VagaRepository vagaRepository,
         CandidaturaMapper candidaturaMapper,
         UsuarioAuthService usuarioAuthService,
         EmpresaAuthService empresaAuthService,
         NotificationService notificationService,
-        ChatService chatService
+        ChatService chatService,
+        PaymentService paymentService,
+        ContractService contractService
 ) {
     this.candidaturaRepository = candidaturaRepository;
     this.vagaRepository = vagaRepository;
@@ -61,6 +68,8 @@ public class CandidaturaService {
     this.empresaAuthService = empresaAuthService;
     this.notificationService = notificationService;
     this.chatService = chatService;
+    this.paymentService = paymentService;
+    this.contractService = contractService;
 }
 
 
@@ -199,163 +208,247 @@ public class CandidaturaService {
         return candidaturas;
     }
 
-    @Transactional
-    public CandidaturaResponse aceitar(
-            Long candidaturaId,
-            Authentication authentication
+  @Transactional
+public CandidaturaResponse aceitar(
+        Long candidaturaId,
+        Authentication authentication
+) {
+
+    Empresa empresa =
+            empresaAuthService.getEmpresaLogada(
+                    authentication
+            );
+
+    Candidatura candidatura =
+            buscarCandidaturaDaEmpresa(
+                    candidaturaId,
+                    empresa.getId()
+            );
+
+    /*
+     * Apenas candidaturas que ainda estão em análise
+     * podem ser aceitas.
+     */
+    if (
+            candidatura.getStatus()
+                    != StatusCandidatura.PENDENTE
+            &&
+            candidatura.getStatus()
+                    != StatusCandidatura.VISUALIZADA
     ) {
 
-        Empresa empresa =
-                empresaAuthService.getEmpresaLogada(authentication);
-
-        Candidatura candidatura =
-                buscarCandidaturaDaEmpresa(
-                        candidaturaId,
-                        empresa.getId()
-                );
-
-        if (candidatura.getStatus() != StatusCandidatura.PENDENTE
-                && candidatura.getStatus() != StatusCandidatura.VISUALIZADA) {
-
-            log.warn(
-                    "Empresa '{}' tentou aceitar a candidatura {} com status '{}'",
-                    empresa.getNomeFantasia(),
-                    candidatura.getId(),
-                    candidatura.getStatus()
-            );
-
-            throw new BusinessException(
-                    "Somente candidaturas pendentes ou visualizadas podem ser aceitas."
-            );
-        }
-
-        Vaga vaga = candidatura.getVaga();
-
-        if (vaga.getStatus() != StatusVaga.PUBLICADA) {
-
-            log.warn(
-                    "Empresa '{}' tentou aceitar candidatura da vaga '{}' (id={}) com status '{}'",
-                    empresa.getNomeFantasia(),
-                    vaga.getTitulo(),
-                    vaga.getId(),
-                    vaga.getStatus()
-            );
-
-            throw new BusinessException(
-                    "Esta vaga não está mais disponível para aceitar candidatos."
-            );
-        }
-
-        long quantidadeAceitos =
-                candidaturaRepository.countByVagaIdAndStatus(
-                        vaga.getId(),
-                        StatusCandidatura.ACEITA
-                );
-
-        if (quantidadeAceitos >= vaga.getQuantidadePessoas()) {
-
-            log.warn(
-                    "Empresa '{}' tentou aceitar candidatura acima do limite da vaga '{}' (id={})",
-                    empresa.getNomeFantasia(),
-                    vaga.getTitulo(),
-                    vaga.getId()
-            );
-
-            throw new BusinessException(
-                    "A quantidade necessária de profissionais já foi preenchida."
-            );
-        }
-
-        candidatura.setStatus(StatusCandidatura.ACEITA);
-        candidatura.setEmpresaVisualizou(true);
-
-        Candidatura candidaturaSalva =
-                candidaturaRepository.save(candidatura);
-
-        chatService.criarConversaAutomaticamente(
-        candidaturaSalva
-);
-
-
-        notificationService.criarNotificacao(
-        candidaturaSalva.getUsuario(),
-        "Candidatura aceita",
-        "Sua candidatura para a vaga \""
-                + vaga.getTitulo()
-                + "\" foi aceita pela empresa "
-                + empresa.getNomeFantasia()
-                + ".",
-        NotificationType.SUCCESS
-);
-
-
-        log.info(
-                "Empresa '{}' aceitou a candidatura {} para a vaga '{}' (vagaId={})",
+        log.warn(
+                "Empresa '{}' tentou aceitar a candidatura {} com status '{}'",
                 empresa.getNomeFantasia(),
-                candidaturaSalva.getId(),
-                vaga.getTitulo(),
-                vaga.getId()
+                candidatura.getId(),
+                candidatura.getStatus()
         );
 
-        quantidadeAceitos++;
-
-        if (quantidadeAceitos >= vaga.getQuantidadePessoas()) {
-
-            vaga.setStatus(StatusVaga.FINALIZADA);
-            vagaRepository.save(vaga);
-
-            log.info(
-                    "Vaga '{}' (id={}) foi finalizada automaticamente após atingir {} profissional(is)",
-                    vaga.getTitulo(),
-                    vaga.getId(),
-                    vaga.getQuantidadePessoas()
-            );
-
-            List<Candidatura> candidaturasRestantes =
-                    candidaturaRepository.findByVagaIdAndStatusIn(
-                            vaga.getId(),
-                            List.of(
-                                    StatusCandidatura.PENDENTE,
-                                    StatusCandidatura.VISUALIZADA
-                            )
-                    );
-
-          candidaturasRestantes.forEach(candidaturaRestante -> {
-
-    candidaturaRestante.setStatus(
-            StatusCandidatura.RECUSADA
-    );
-
-    candidaturaRestante.setEmpresaVisualizou(true);
-
-    notificationService.criarNotificacao(
-            candidaturaRestante.getUsuario(),
-            "Processo seletivo encerrado",
-            "A vaga \""
-                    + vaga.getTitulo()
-                    + "\" foi preenchida e sua candidatura não foi selecionada.",
-            NotificationType.INFO
-    );
-});
-
-            candidaturaRepository.saveAll(
-                    candidaturasRestantes
-            );
-
-            if (!candidaturasRestantes.isEmpty()) {
-
-                log.info(
-                        "{} candidatura(s) foram recusadas automaticamente para a vaga {}",
-                        candidaturasRestantes.size(),
-                        vaga.getId()
-                );
-            }
-        }
-
-        return candidaturaMapper.toResponse(
-                candidaturaSalva
+        throw new BusinessException(
+                "Somente candidaturas pendentes ou visualizadas podem ser aceitas."
         );
     }
+
+    Vaga vaga =
+            candidatura.getVaga();
+
+    /*
+     * Não permitimos novas contratações caso
+     * a vaga já tenha sido encerrada.
+     */
+    if (
+            vaga.getStatus()
+                    != StatusVaga.PUBLICADA
+    ) {
+
+        log.warn(
+                "Empresa '{}' tentou aceitar candidatura da vaga '{}' (id={}) com status '{}'",
+                empresa.getNomeFantasia(),
+                vaga.getTitulo(),
+                vaga.getId(),
+                vaga.getStatus()
+        );
+
+        throw new BusinessException(
+                "Esta vaga não está mais disponível para aceitar candidatos."
+        );
+    }
+
+    /*
+     * Descobre quantos profissionais já foram
+     * contratados para essa vaga.
+     */
+    long quantidadeAceitos =
+            candidaturaRepository
+                    .countByVagaIdAndStatus(
+                            vaga.getId(),
+                            StatusCandidatura.ACEITA
+                    );
+
+    if (
+            quantidadeAceitos
+                    >= vaga.getQuantidadePessoas()
+    ) {
+
+        throw new BusinessException(
+                "A quantidade necessária de profissionais já foi preenchida."
+        );
+    }
+
+    /*
+     * Aceita a candidatura.
+     */
+    candidatura.setStatus(
+            StatusCandidatura.ACEITA
+    );
+
+    candidatura.setEmpresaVisualizou(
+            true
+    );
+
+    Candidatura candidaturaSalva =
+            candidaturaRepository.save(
+                    candidatura
+            );
+
+    /*
+     * A partir daqui começa oficialmente
+     * o ciclo de contratação.
+     */
+
+    // Cria o contrato
+    contractService
+            .criarContratoAutomaticamente(
+                    candidaturaSalva
+            );
+
+    // Cria a conversa
+    chatService
+            .criarConversaAutomaticamente(
+                    candidaturaSalva
+            );
+
+    // Prepara o registro financeiro
+    paymentService
+            .criarPagamentoAutomaticamente(
+                    candidaturaSalva
+            );
+
+    // Notifica o freelancer
+    notificationService
+            .criarNotificacao(
+                    candidaturaSalva.getUsuario(),
+                    "Candidatura aceita",
+                    "Sua candidatura para a vaga \""
+                            + vaga.getTitulo()
+                            + "\" foi aceita pela empresa "
+                            + empresa.getNomeFantasia()
+                            + ".",
+                    NotificationType.SUCCESS
+            );
+
+    log.info(
+            "Empresa '{}' aceitou a candidatura {} para a vaga '{}' (vagaId={})",
+            empresa.getNomeFantasia(),
+            candidaturaSalva.getId(),
+            vaga.getTitulo(),
+            vaga.getId()
+    );
+
+    /*
+     * Incluímos a contratação que acabou
+     * de acontecer na contagem.
+     */
+    quantidadeAceitos++;
+
+    /*
+     * Se todas as posições foram preenchidas,
+     * encerramos o processo seletivo.
+     */
+    if (
+            quantidadeAceitos
+                    >= vaga.getQuantidadePessoas()
+    ) {
+
+        vaga.setStatus(
+                StatusVaga.FINALIZADA
+        );
+
+        vagaRepository.save(
+                vaga
+        );
+
+        log.info(
+                "Vaga '{}' (id={}) foi finalizada automaticamente após atingir {} profissional(is)",
+                vaga.getTitulo(),
+                vaga.getId(),
+                vaga.getQuantidadePessoas()
+        );
+
+        /*
+         * Busca quem ainda estava esperando
+         * uma decisão.
+         */
+        List<Candidatura> candidaturasRestantes =
+                candidaturaRepository
+                        .findByVagaIdAndStatusIn(
+                                vaga.getId(),
+                                List.of(
+                                        StatusCandidatura.PENDENTE,
+                                        StatusCandidatura.VISUALIZADA
+                                )
+                        );
+
+        /*
+         * Como todas as posições foram preenchidas,
+         * as demais candidaturas são recusadas.
+         */
+        candidaturasRestantes.forEach(
+                candidaturaRestante -> {
+
+                    candidaturaRestante.setStatus(
+                            StatusCandidatura.RECUSADA
+                    );
+
+                    candidaturaRestante
+                            .setEmpresaVisualizou(
+                                    true
+                            );
+
+                    notificationService
+                            .criarNotificacao(
+                                    candidaturaRestante
+                                            .getUsuario(),
+                                    "Processo seletivo encerrado",
+                                    "A vaga \""
+                                            + vaga.getTitulo()
+                                            + "\" foi preenchida e sua candidatura não foi selecionada.",
+                                    NotificationType.INFO
+                            );
+                }
+        );
+
+        candidaturaRepository.saveAll(
+                candidaturasRestantes
+        );
+
+        if (
+                !candidaturasRestantes
+                        .isEmpty()
+        ) {
+
+            log.info(
+                    "{} candidatura(s) foram recusadas automaticamente para a vaga {}",
+                    candidaturasRestantes.size(),
+                    vaga.getId()
+            );
+        }
+    }
+
+    return candidaturaMapper.toResponse(
+            candidaturaSalva
+    );
+}
 
     @Transactional
     public CandidaturaResponse recusar(

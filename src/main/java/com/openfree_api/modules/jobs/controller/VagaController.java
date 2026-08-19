@@ -17,8 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/jobs")
 public class VagaController {

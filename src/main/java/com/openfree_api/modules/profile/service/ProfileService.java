@@ -15,7 +15,6 @@ import com.openfree_api.modules.users.entity.Usuario;
 import com.openfree_api.modules.users.repository.UsuarioRepository;
 
 import com.openfree_api.modules.profile.storage.FileCategory;
-import com.openfree_api.modules.profile.storage.LocalFileStorageService;
 import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.security.core.Authentication;
