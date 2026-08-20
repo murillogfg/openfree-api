@@ -210,6 +210,27 @@ public class SecurityConfig {
 
 
                         /*
+                                * VAGAS PÚBLICAS PARA SEO
+                                *
+                                * A listagem e o detalhe de uma vaga
+                                * podem ser consultados sem login.
+                                *
+                                * /jobs       -> listagem
+                                * /jobs/{id}  -> detalhe
+                                *
+                                * Rotas mais profundas continuam privadas,
+                                * como /jobs/{id}/applications.
+                                */
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/jobs",
+                                        "/jobs/",
+                                        "/jobs/*"
+                                )
+                                .permitAll()
+
+
+                        /*
                          * Apenas empresas podem
                          * criar vagas.
                          */
