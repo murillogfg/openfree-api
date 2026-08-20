@@ -2,21 +2,29 @@ package com.openfree_api.modules.jobs.repository;
 
 import com.openfree_api.modules.jobs.entity.StatusVaga;
 import com.openfree_api.modules.jobs.entity.Vaga;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 
 public interface VagaRepository extends
         JpaRepository<Vaga, Long>,
         JpaSpecificationExecutor<Vaga> {
 
-    List<Vaga> findByEmpresaId(Long empresaId);
+    List<Vaga> findByEmpresaId(
+            Long empresaId
+    );
 
-    List<Vaga> findByStatus(StatusVaga status);
+    List<Vaga> findByStatus(
+            StatusVaga status
+    );
 
-    List<Vaga> findByCidadeIgnoreCase(String cidade);
+    List<Vaga> findByCidadeIgnoreCase(
+            String cidade
+    );
 
     List<Vaga> findByEmpresaIdAndStatus(
             Long empresaId,
@@ -28,11 +36,24 @@ public interface VagaRepository extends
             Long empresaId
     );
 
-    long countByEmpresaId(Long empresaId);
+    /*
+     * Consulta usada pelo detalhe público.
+     *
+     * Evita que uma vaga em RASCUNHO,
+     * CANCELADA, ARQUIVADA etc. seja exposta
+     * apenas porque alguém descobriu o ID.
+     */
+    Optional<Vaga> findByIdAndStatus(
+            Long vagaId,
+            StatusVaga status
+    );
+
+    long countByEmpresaId(
+            Long empresaId
+    );
 
     long countByEmpresaIdAndStatus(
             Long empresaId,
             StatusVaga status
     );
-
 }
