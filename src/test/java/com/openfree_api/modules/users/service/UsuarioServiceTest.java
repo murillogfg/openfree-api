@@ -2,12 +2,14 @@ package com.openfree_api.modules.users.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 
+import com.openfree_api.common.exception.BusinessException;
 import com.openfree_api.modules.users.dto.CreateUsuarioRequest;
 import com.openfree_api.modules.users.dto.UsuarioResponse;
 import com.openfree_api.modules.users.entity.Usuario;
@@ -26,6 +28,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
+
+import com.openfree_api.common.exception.BusinessException;
+import com.openfree_api.modules.users.entity.Usuario;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +61,7 @@ class UsuarioServiceTest {
         request.setNome("Murillo");
         request.setEmail("murillo@email.com");
         request.setSenha("123456");
+        request.setAceitouTermos(true);
 
         Usuario usuario = new Usuario();
         usuario.setNome("Murillo");
@@ -262,6 +275,42 @@ void deveRetornarFalseQuandoUsuarioNaoExistirAoExcluir() {
             usuarioRepository,
             never()
     ).deleteById(anyLong());
+}
+
+
+@Test
+void deveBloquearCriacaoDeUsuarioSemAceitarTermos() {
+
+    CreateUsuarioRequest request =
+            new CreateUsuarioRequest();
+
+    request.setNome("Teste");
+    request.setEmail("teste@email.com");
+    request.setSenha("123456");
+    request.setTelefone("11999999999");
+
+    request.setAceitouTermos(false);
+
+    BusinessException exception =
+            assertThrows(
+                    BusinessException.class,
+                    () ->
+                            usuarioService.criar(
+                                    request
+                            )
+            );
+
+    assertEquals(
+            "É necessário aceitar os Termos de Uso e a Política de Privacidade.",
+            exception.getMessage()
+    );
+
+    verify(
+            usuarioRepository,
+            never()
+    ).save(
+            any(Usuario.class)
+    );
 }
 
 }

@@ -1,6 +1,7 @@
 package com.openfree_api.modules.companies.service;
 
 import com.openfree_api.common.exception.BusinessException;
+import com.openfree_api.modules.auth.service.EmpresaAuthService;
 import com.openfree_api.modules.candidaturas.entity.StatusCandidatura;
 import com.openfree_api.modules.candidaturas.repository.CandidaturaRepository;
 import com.openfree_api.modules.companies.dto.AddEmpresaUsuarioRequest;
@@ -44,6 +45,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.openfree_api.common.cnpj.CnpjLookupResult;
+import com.openfree_api.common.cnpj.CnpjLookupService;
+import com.openfree_api.common.cnpj.CnpjLookupStatus;
+
 
 
 @ExtendWith(MockitoExtension.class)
@@ -71,7 +76,13 @@ class EmpresaServiceTest {
     private CandidaturaRepository candidaturaRepository;
 
     @Mock
+    private EmpresaAuthService empresaAuthService;
+
+    @Mock
     private Authentication authentication;
+
+    @Mock
+    private CnpjLookupService cnpjLookupService;
 
     @InjectMocks
     private EmpresaService empresaService;
@@ -82,7 +93,9 @@ class EmpresaServiceTest {
         CreateEmpresaRequest request =
                 new CreateEmpresaRequest();
 
-        request.setCnpj("12345678000180");
+
+         request.setCnpj("45987321000160");
+      
         request.setEmail("contato@openfree.com");
         request.setNomeFantasia("OpenFree");
         request.setRazaoSocial(
@@ -156,6 +169,20 @@ class EmpresaServiceTest {
         ).thenReturn(Optional.of(owner));
 
         when(
+                cnpjLookupService.consultar(
+                        request.getCnpj()
+                )
+        ).thenReturn(
+                new CnpjLookupResult(
+                        CnpjLookupStatus.VERIFIED,
+                        request.getCnpj(),
+                        "OpenFree Tecnologia LTDA",
+                        "OpenFree",
+                        "ATIVA"
+                )
+        );
+
+        when(
                 empresaMapper.toEntity(request)
         ).thenReturn(empresaMapeada);
 
@@ -199,6 +226,14 @@ class EmpresaServiceTest {
                 owner.getRole()
         );
 
+        assertEquals(
+                true,
+                empresaMapeada.getCnpjVerificado()
+        );
+
+        verify(cnpjLookupService)
+                .consultar(request.getCnpj());
+
         ArgumentCaptor<EmpresaUsuario> captor =
                 ArgumentCaptor.forClass(
                         EmpresaUsuario.class
@@ -239,14 +274,13 @@ class EmpresaServiceTest {
         verify(empresaMapper)
                 .toResponse(empresaSalva);
     }
-
-    @Test
+@Test
 void deveLancarExcecaoQuandoCnpjJaExistir() {
 
     CreateEmpresaRequest request =
             new CreateEmpresaRequest();
 
-    request.setCnpj("12345678000180");
+      request.setCnpj("45987321000160");
     request.setEmail("contato@openfree.com");
 
     when(
@@ -296,7 +330,7 @@ void deveLancarExcecaoQuandoEmailJaExistir() {
     CreateEmpresaRequest request =
             new CreateEmpresaRequest();
 
-    request.setCnpj("12345678000180");
+      request.setCnpj("45987321000160");
     request.setEmail("contato@openfree.com");
 
     when(
@@ -357,7 +391,7 @@ void deveLancarExcecaoQuandoUsuarioAutenticadoNaoExistir() {
     CreateEmpresaRequest request =
             new CreateEmpresaRequest();
 
-    request.setCnpj("12345678000180");
+    request.setCnpj("45987321000160");
     request.setEmail("contato@openfree.com");
 
     when(
@@ -1104,6 +1138,267 @@ void deveRetornarFalseQuandoEmpresaNaoExistirAoExcluir() {
             empresaRepository,
             never()
     ).deleteById(anyLong());
+}
+
+@Test
+void deveLancarExcecaoQuandoCnpjForInvalido() {
+
+    CreateEmpresaRequest request =
+            new CreateEmpresaRequest();
+
+    request.setRazaoSocial("Empresa Teste LTDA");
+    request.setNomeFantasia("Empresa Teste");
+      request.setCnpj("12.345.678/0001-99");
+    request.setEmail("empresa@teste.com");
+
+    BusinessException exception =
+            assertThrows(
+                    BusinessException.class,
+                    () ->
+                            empresaService.criar(
+                                    request,
+                                    authentication
+                            )
+            );
+
+    assertEquals(
+            "Informe um CNPJ válido.",
+            exception.getMessage()
+    );
+
+    verify(
+            empresaRepository,
+            never()
+    ).save(
+            any(Empresa.class)
+    );
+}
+
+@Test
+void deveBloquearEmpresaQuandoCnpjNaoExistir() {
+
+    CreateEmpresaRequest request =
+            new CreateEmpresaRequest();
+
+    request.setRazaoSocial(
+            "Empresa Teste LTDA"
+    );
+    request.setNomeFantasia(
+            "Empresa Teste"
+    );
+      request.setCnpj(
+            "45987321000160"
+    );
+    request.setEmail(
+            "empresa@teste.com"
+    );
+
+    Usuario owner = new Usuario();
+    owner.setId(10L);
+    owner.setNome("Murillo");
+    owner.setEmail("murillo@email.com");
+    owner.setRole(Role.FREELANCER);
+
+    when(
+            empresaRepository.existsByCnpj(
+                    request.getCnpj()
+            )
+    ).thenReturn(false);
+
+    when(
+            empresaRepository.existsByEmail(
+                    request.getEmail()
+            )
+    ).thenReturn(false);
+
+    when(
+            authentication.getName()
+    ).thenReturn("murillo@email.com");
+
+    when(
+            usuarioRepository.findByEmail(
+                    "murillo@email.com"
+            )
+    ).thenReturn(Optional.of(owner));
+
+    when(
+            cnpjLookupService.consultar(
+                    request.getCnpj()
+            )
+    ).thenReturn(
+            new CnpjLookupResult(
+                    CnpjLookupStatus.NOT_FOUND,
+                    request.getCnpj(),
+                    null,
+                    null,
+                    null
+            )
+    );
+
+    BusinessException exception =
+            assertThrows(
+                    BusinessException.class,
+                    () -> empresaService.criar(
+                            request,
+                            authentication
+                    )
+            );
+
+    assertEquals(
+            "CNPJ não encontrado.",
+            exception.getMessage()
+    );
+
+    verify(cnpjLookupService)
+            .consultar(request.getCnpj());
+
+    verify(
+            empresaRepository,
+            never()
+    ).save(
+            any(Empresa.class)
+    );
+
+    verify(
+            empresaUsuarioRepository,
+            never()
+    ).save(
+            any(EmpresaUsuario.class)
+    );
+}
+
+@Test
+void devePermitirCadastroQuandoConsultaCnpjEstiverIndisponivel() {
+
+    CreateEmpresaRequest request =
+            new CreateEmpresaRequest();
+
+    request.setRazaoSocial(
+            "Empresa Teste LTDA"
+    );
+    request.setNomeFantasia(
+            "Empresa Teste"
+    );
+      request.setCnpj(
+            "45987321000160"
+    );
+    request.setEmail(
+            "empresa@teste.com"
+    );
+
+    Usuario owner = new Usuario();
+    owner.setId(10L);
+    owner.setNome("Murillo");
+    owner.setEmail("murillo@email.com");
+    owner.setRole(Role.FREELANCER);
+
+    Empresa empresaMapeada =
+            new Empresa();
+
+    Empresa empresaSalva =
+            new Empresa();
+
+    empresaSalva.setId(1L);
+
+    EmpresaResponse responseEsperada =
+            new EmpresaResponse();
+
+    responseEsperada.setId(1L);
+    responseEsperada.setNomeFantasia(
+            "Empresa Teste"
+    );
+
+    when(
+            empresaRepository.existsByCnpj(
+                    request.getCnpj()
+            )
+    ).thenReturn(false);
+
+    when(
+            empresaRepository.existsByEmail(
+                    request.getEmail()
+            )
+    ).thenReturn(false);
+
+    when(
+            authentication.getName()
+    ).thenReturn("murillo@email.com");
+
+    when(
+            usuarioRepository.findByEmail(
+                    "murillo@email.com"
+            )
+    ).thenReturn(Optional.of(owner));
+
+    when(
+            cnpjLookupService.consultar(
+                    request.getCnpj()
+            )
+    ).thenReturn(
+            new CnpjLookupResult(
+                    CnpjLookupStatus.UNAVAILABLE,
+                    request.getCnpj(),
+                    null,
+                    null,
+                    null
+            )
+    );
+
+    when(
+            empresaMapper.toEntity(request)
+    ).thenReturn(empresaMapeada);
+
+    when(
+            empresaRepository.save(
+                    empresaMapeada
+            )
+    ).thenReturn(empresaSalva);
+
+    when(
+            empresaMapper.toResponse(
+                    empresaSalva
+            )
+    ).thenReturn(responseEsperada);
+
+    EmpresaResponse response =
+            empresaService.criar(
+                    request,
+                    authentication
+            );
+
+    assertNotNull(response);
+
+    assertEquals(
+            1L,
+            response.getId()
+    );
+
+    assertEquals(
+            false,
+            empresaMapeada.getCnpjVerificado()
+    );
+
+    assertSame(
+            owner,
+            empresaMapeada.getUsuario()
+    );
+
+    assertEquals(
+            Role.EMPRESA,
+            owner.getRole()
+    );
+
+    verify(cnpjLookupService)
+            .consultar(request.getCnpj());
+
+    verify(empresaRepository)
+            .save(empresaMapeada);
+
+    verify(empresaUsuarioRepository)
+            .save(any(EmpresaUsuario.class));
+
+    verify(usuarioRepository)
+            .save(owner);
 }
 
 }

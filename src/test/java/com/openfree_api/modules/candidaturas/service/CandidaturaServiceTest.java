@@ -16,6 +16,32 @@ import com.openfree_api.modules.notifications.entity.NotificationType;
 import com.openfree_api.modules.notifications.service.NotificationService;
 import com.openfree_api.modules.users.entity.Usuario;
 
+
+import com.openfree_api.common.exception.BusinessException;
+
+import com.openfree_api.modules.candidaturas.dto.CreateCandidaturaRequest;
+import com.openfree_api.modules.candidaturas.entity.Candidatura;
+
+import com.openfree_api.modules.companies.entity.Empresa;
+
+import com.openfree_api.modules.jobs.entity.StatusVaga;
+import com.openfree_api.modules.jobs.entity.Vaga;
+
+import com.openfree_api.modules.users.entity.Usuario;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static org.mockito.ArgumentMatchers.any;
+
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -640,6 +666,65 @@ void deveGerarNotificacaoAoAceitarCandidatura() {
             );
 }
 
+
+@Test
+void naoDevePermitirCandidaturaNaPropriaVaga() {
+
+    Long vagaId = 1L;
+
+    Usuario usuario = new Usuario();
+    usuario.setId(10L);
+    usuario.setNome("Murillo");
+    usuario.setEmail("empresa@openfree.com");
+
+    Empresa empresa = new Empresa();
+    empresa.setId(20L);
+    empresa.setNomeFantasia("OpenFree Empresa");
+    empresa.setUsuario(usuario);
+
+    Vaga vaga = new Vaga();
+    vaga.setId(vagaId);
+    vaga.setTitulo("Desenvolvedor Java");
+    vaga.setStatus(StatusVaga.PUBLICADA);
+    vaga.setEmpresa(empresa);
+
+    CreateCandidaturaRequest request =
+            new CreateCandidaturaRequest();
+
+    when(
+            usuarioAuthService
+                    .getUsuarioLogado(authentication)
+    ).thenReturn(usuario);
+
+    when(
+            vagaRepository.findById(vagaId)
+    ).thenReturn(
+            Optional.of(vaga)
+    );
+
+    BusinessException exception =
+            assertThrows(
+                    BusinessException.class,
+                    () ->
+                            candidaturaService.criar(
+                                    vagaId,
+                                    request,
+                                    authentication
+                            )
+            );
+
+    assertEquals(
+            "Você não pode se candidatar a uma vaga publicada pela sua própria empresa.",
+            exception.getMessage()
+    );
+
+    verify(
+            candidaturaRepository,
+            never()
+    ).save(
+            any(Candidatura.class)
+    );
+}
 
 
 }
