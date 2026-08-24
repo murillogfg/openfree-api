@@ -31,6 +31,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -44,6 +46,10 @@ public class VagaService {
                     VagaService.class
             );
 
+    private static final ZoneId ZONA_NEGOCIO =
+            ZoneId.of(
+                    "America/Sao_Paulo"
+            );
 
     private static final Set<String>
             CAMPOS_ORDENACAO_PERMITIDOS =
@@ -90,13 +96,6 @@ public class VagaService {
     }
 
 
-    /*
-     * =====================================================
-     * CONSULTAS INTERNAS
-     * =====================================================
-     */
-
-
     @Transactional(readOnly = true)
     public List<VagaResponse> listarTodas() {
 
@@ -110,13 +109,6 @@ public class VagaService {
     }
 
 
-    /*
-     * Mantemos o método genérico para usos
-     * internos/testes que precisem consultar
-     * qualquer status.
-     *
-     * O endpoint público NÃO usa este método.
-     */
     @Transactional(readOnly = true)
     public Optional<VagaResponse> buscarPorId(
             Long id
@@ -130,28 +122,32 @@ public class VagaService {
     }
 
 
-    /*
-     * =====================================================
-     * CONSULTAS PÚBLICAS
-     * =====================================================
-     */
-
-
-    /*
-     * Detalhe público de uma vaga.
-     *
-     * Somente PUBLICADA pode ser retornada.
-     */
     @Transactional(readOnly = true)
     public Optional<VagaResponse>
     buscarPublicadaPorId(
             Long id
     ) {
 
+        LocalDate hoje =
+                hoje();
+
+
         return vagaRepository
                 .findByIdAndStatus(
                         id,
                         StatusVaga.PUBLICADA
+                )
+                .filter(
+                        vaga ->
+                                vaga.getDataServico()
+                                        != null
+                )
+                .filter(
+                        vaga ->
+                                !vaga.getDataServico()
+                                        .isBefore(
+                                                hoje
+                                        )
                 )
                 .map(
                         vagaMapper::toResponse
@@ -159,19 +155,6 @@ public class VagaService {
     }
 
 
-    /*
-     * Listagem pública.
-     *
-     * Como /jobs não exige mais autenticação,
-     * jamais confiamos no status recebido
-     * através da query string.
-     *
-     * Exemplo malicioso:
-     *
-     * /jobs?status=RASCUNHO
-     *
-     * O valor é sobrescrito para PUBLICADA.
-     */
     @Transactional(readOnly = true)
     public PageResponse<VagaResponse>
     buscarPublicadas(
@@ -183,18 +166,30 @@ public class VagaService {
                 StatusVaga.PUBLICADA
         );
 
-        return buscar(
-                filtro,
+
+        validarPaginacaoEOrdenacao(
                 pageable
+        );
+
+
+        Page<Vaga> vagas =
+                vagaRepository.findAll(
+                        VagaSpecification
+                                .filtroPublico(
+                                        filtro,
+                                        hoje()
+                                ),
+                        pageable
+                );
+
+
+        return PageResponse.from(
+                vagas,
+                vagaMapper::toResponse
         );
     }
 
 
-    /*
-     * Consulta genérica com filtros.
-     *
-     * Continua disponível para usos internos.
-     */
     @Transactional(readOnly = true)
     public PageResponse<VagaResponse> buscar(
             JobFilterRequest filtro,
@@ -205,6 +200,7 @@ public class VagaService {
                 pageable
         );
 
+
         Page<Vaga> vagas =
                 vagaRepository.findAll(
                         VagaSpecification.filtro(
@@ -212,6 +208,7 @@ public class VagaService {
                         ),
                         pageable
                 );
+
 
         return PageResponse.from(
                 vagas,
@@ -243,6 +240,7 @@ public class VagaService {
             );
         }
 
+
         return vagaRepository
                 .findByEmpresaId(
                         empresaId
@@ -253,13 +251,6 @@ public class VagaService {
                 )
                 .toList();
     }
-
-
-    /*
-     * =====================================================
-     * CRIAÇÃO
-     * =====================================================
-     */
 
 
     @Transactional
@@ -348,13 +339,6 @@ public class VagaService {
     }
 
 
-    /*
-     * =====================================================
-     * EXCLUSÃO
-     * =====================================================
-     */
-
-
     @Transactional
     public void excluir(
             Long id,
@@ -388,13 +372,6 @@ public class VagaService {
                         vaga
                 );
     }
-
-
-    /*
-     * =====================================================
-     * PUBLICAÇÃO
-     * =====================================================
-     */
 
 
     @Transactional
@@ -436,6 +413,25 @@ public class VagaService {
         }
 
 
+        /*
+         * Evita publicar uma vaga cuja data
+         * do serviço já passou.
+         */
+        if (
+                vaga.getDataServico()
+                        != null
+                && vaga.getDataServico()
+                        .isBefore(
+                                hoje()
+                        )
+        ) {
+
+            throw new BusinessException(
+                    "Não é possível publicar uma vaga com a data do serviço já vencida."
+            );
+        }
+
+
         vaga.setStatus(
                 StatusVaga.PUBLICADA
         );
@@ -461,13 +457,6 @@ public class VagaService {
                         vagaAtualizada
                 );
     }
-
-
-    /*
-     * =====================================================
-     * HELPERS
-     * =====================================================
-     */
 
 
     private Vaga buscarVagaDaEmpresa(
@@ -550,5 +539,13 @@ public class VagaService {
                 );
             }
         }
+    }
+
+
+    private LocalDate hoje() {
+
+        return LocalDate.now(
+                ZONA_NEGOCIO
+        );
     }
 }

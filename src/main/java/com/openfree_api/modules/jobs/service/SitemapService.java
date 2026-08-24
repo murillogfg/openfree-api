@@ -5,29 +5,26 @@ import com.openfree_api.modules.jobs.entity.Vaga;
 import com.openfree_api.modules.jobs.repository.VagaRepository;
 
 import org.springframework.beans.factory.annotation.Value;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 
 @Service
 public class SitemapService {
 
+    private static final ZoneId ZONA_NEGOCIO =
+            ZoneId.of(
+                    "America/Sao_Paulo"
+            );
+
+
     private final VagaRepository vagaRepository;
 
 
-    /*
-     * Enquanto a OpenFree estiver usando
-     * o domínio da Vercel, ele será o domínio
-     * das URLs canônicas do sitemap.
-     *
-     * Quando houver domínio próprio, podemos
-     * configurar APP_FRONTEND_URL no Railway
-     * sem alterar o código.
-     */
     @Value(
             "${app.frontend.url:https://openfree-front.vercel.app}"
     )
@@ -46,10 +43,31 @@ public class SitemapService {
     @Transactional(readOnly = true)
     public String gerarSitemap() {
 
-        List<Vaga> vagas =
-                vagaRepository.findByStatus(
-                        StatusVaga.PUBLICADA
+        LocalDate hoje =
+                LocalDate.now(
+                        ZONA_NEGOCIO
                 );
+
+
+        List<Vaga> vagas =
+                vagaRepository
+                        .findByStatus(
+                                StatusVaga.PUBLICADA
+                        )
+                        .stream()
+                        .filter(
+                                vaga ->
+                                        vaga.getDataServico()
+                                                != null
+                        )
+                        .filter(
+                                vaga ->
+                                        !vaga.getDataServico()
+                                                .isBefore(
+                                                        hoje
+                                                )
+                        )
+                        .toList();
 
 
         String site =
@@ -66,14 +84,12 @@ public class SitemapService {
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         );
 
+
         xml.append(
                 "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
         );
 
 
-        /*
-         * Página pública de listagem.
-         */
         adicionarUrl(
                 xml,
                 site + "/jobs",
@@ -81,10 +97,6 @@ public class SitemapService {
         );
 
 
-        /*
-         * Uma entrada para cada vaga que está
-         * realmente PUBLICADA.
-         */
         for (
                 Vaga vaga
                 : vagas
@@ -141,21 +153,19 @@ public class SitemapService {
                 "    <loc>"
         );
 
+
         xml.append(
                 escapeXml(
                         url
                 )
         );
 
+
         xml.append(
                 "</loc>\n"
         );
 
 
-        /*
-         * lastmod só é enviado quando temos uma
-         * data real da última alteração da vaga.
-         */
         if (
                 lastModified
                         != null
@@ -165,9 +175,11 @@ public class SitemapService {
                     "    <lastmod>"
             );
 
+
             xml.append(
                     lastModified
             );
+
 
             xml.append(
                     "</lastmod>\n"

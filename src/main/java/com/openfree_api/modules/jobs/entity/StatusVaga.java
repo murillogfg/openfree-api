@@ -6,6 +6,6 @@ public enum StatusVaga {
     EM_ANDAMENTO,
     FINALIZADA,
     CANCELADA,
-    ARQUIVADA
+    ARQUIVADA,
+    EXPIRADA
 }
-

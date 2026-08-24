@@ -36,13 +36,6 @@ public interface VagaRepository extends
             Long empresaId
     );
 
-    /*
-     * Consulta usada pelo detalhe público.
-     *
-     * Evita que uma vaga em RASCUNHO,
-     * CANCELADA, ARQUIVADA etc. seja exposta
-     * apenas porque alguém descobriu o ID.
-     */
     Optional<Vaga> findByIdAndStatus(
             Long vagaId,
             StatusVaga status
