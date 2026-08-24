@@ -8,17 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-
 import org.springframework.context.event.EventListener;
-
 import org.springframework.scheduling.annotation.Scheduled;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-
 import java.util.List;
 
 
@@ -30,22 +26,17 @@ public class VagaExpirationService {
                     VagaExpirationService.class
             );
 
-
-    private static final ZoneId
-            ZONA_NEGOCIO =
+    private static final ZoneId ZONA_NEGOCIO =
             ZoneId.of(
                     "America/Sao_Paulo"
             );
 
-
-    private final VagaRepository
-            vagaRepository;
+    private final VagaRepository vagaRepository;
 
 
     public VagaExpirationService(
             VagaRepository vagaRepository
     ) {
-
         this.vagaRepository =
                 vagaRepository;
     }
@@ -56,7 +47,6 @@ public class VagaExpirationService {
     )
     @Transactional
     public void expirarAoIniciar() {
-
         expirarVagasVencidas();
     }
 
@@ -67,7 +57,6 @@ public class VagaExpirationService {
     )
     @Transactional
     public void expirarDiariamente() {
-
         expirarVagasVencidas();
     }
 
@@ -79,24 +68,19 @@ public class VagaExpirationService {
                         ZONA_NEGOCIO
                 );
 
-
         List<Vaga> publicadas =
-                vagaRepository
-                        .findByStatus(
-                                StatusVaga.PUBLICADA
-                        );
-
+                vagaRepository.findByStatus(
+                        StatusVaga.PUBLICADA
+                );
 
         List<Vaga> expiradas =
                 publicadas
                         .stream()
-
                         .filter(
                                 vaga ->
                                         vaga.getDataServico()
                                                 != null
                         )
-
                         .filter(
                                 vaga ->
                                         vaga.getDataServico()
@@ -104,17 +88,13 @@ public class VagaExpirationService {
                                                         hoje
                                                 )
                         )
-
                         .toList();
-
 
         if (
                 expiradas.isEmpty()
         ) {
-
             return 0;
         }
-
 
         expiradas.forEach(
                 vaga ->
@@ -123,18 +103,14 @@ public class VagaExpirationService {
                         )
         );
 
-
-        vagaRepository
-                .saveAll(
-                        expiradas
-                );
-
+        vagaRepository.saveAll(
+                expiradas
+        );
 
         log.info(
                 "{} vaga(s) vencida(s) marcada(s) como EXPIRADA.",
                 expiradas.size()
         );
-
 
         return expiradas.size();
     }
