@@ -2,30 +2,41 @@ package com.openfree_api.modules.jobs.specification;
 
 import com.openfree_api.modules.jobs.dto.JobFilterRequest;
 import com.openfree_api.modules.jobs.entity.Vaga;
+
 import jakarta.persistence.criteria.Predicate;
+
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class VagaSpecification {
 
     private VagaSpecification() {
     }
 
+
     public static Specification<Vaga> filtro(
             JobFilterRequest filtro
     ) {
-        return (root, query, builder) -> {
+
+        return (
+                root,
+                query,
+                builder
+        ) -> {
 
             List<Predicate> predicates =
                     new ArrayList<>();
+
 
             if (
                     filtro.getTitulo() != null
                     && !filtro.getTitulo().isBlank()
             ) {
+
                 predicates.add(
                         builder.like(
                                 builder.lower(
@@ -39,10 +50,12 @@ public class VagaSpecification {
                 );
             }
 
+
             if (
                     filtro.getCidade() != null
                     && !filtro.getCidade().isBlank()
             ) {
+
                 predicates.add(
                         builder.equal(
                                 builder.lower(
@@ -54,10 +67,12 @@ public class VagaSpecification {
                 );
             }
 
+
             if (
                     filtro.getEstado() != null
                     && !filtro.getEstado().isBlank()
             ) {
+
                 predicates.add(
                         builder.equal(
                                 builder.lower(
@@ -69,9 +84,11 @@ public class VagaSpecification {
                 );
             }
 
+
             if (
                     filtro.getStatus() != null
             ) {
+
                 predicates.add(
                         builder.equal(
                                 root.get("status"),
@@ -79,6 +96,7 @@ public class VagaSpecification {
                         )
                 );
             }
+
 
             return builder.and(
                     predicates.toArray(
@@ -88,11 +106,15 @@ public class VagaSpecification {
         };
     }
 
+
     public static Specification<Vaga> filtroPublico(
             JobFilterRequest filtro,
             LocalDate hoje
     ) {
-        return filtro(filtro)
+
+        return filtro(
+                filtro
+        )
                 .and(
                         (
                                 root,
@@ -100,7 +122,9 @@ public class VagaSpecification {
                                 builder
                         ) ->
                                 builder.greaterThanOrEqualTo(
-                                        root.<LocalDate>get("dataServico"),
+                                        root.<LocalDate>get(
+                                                "dataServico"
+                                        ),
                                         hoje
                                 )
                 );

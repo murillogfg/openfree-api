@@ -5,6 +5,7 @@ import com.openfree_api.modules.jobs.entity.Vaga;
 import com.openfree_api.modules.jobs.repository.VagaRepository;
 
 import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,13 +17,15 @@ import java.util.List;
 @Service
 public class SitemapService {
 
-    private static final ZoneId ZONA_NEGOCIO =
+    private static final ZoneId
+            ZONA_NEGOCIO =
             ZoneId.of(
                     "America/Sao_Paulo"
             );
 
 
-    private final VagaRepository vagaRepository;
+    private final VagaRepository
+            vagaRepository;
 
 
     @Value(
@@ -55,11 +58,13 @@ public class SitemapService {
                                 StatusVaga.PUBLICADA
                         )
                         .stream()
+
                         .filter(
                                 vaga ->
                                         vaga.getDataServico()
                                                 != null
                         )
+
                         .filter(
                                 vaga ->
                                         !vaga.getDataServico()
@@ -67,6 +72,7 @@ public class SitemapService {
                                                         hoje
                                                 )
                         )
+
                         .toList();
 
 
@@ -103,27 +109,17 @@ public class SitemapService {
         ) {
 
             LocalDate ultimaAlteracao =
-                    null;
-
-
-            if (
-                    vaga.getUpdatedAt()
-                            != null
-            ) {
-
-                ultimaAlteracao =
-                        vaga.getUpdatedAt()
-                                .toLocalDate();
-            }
+                    vaga.getUpdatedAt() == null
+                            ? null
+                            : vaga.getUpdatedAt()
+                            .toLocalDate();
 
 
             adicionarUrl(
                     xml,
-
                     site
                             + "/jobs/"
                             + vaga.getId(),
-
                     ultimaAlteracao
             );
         }
@@ -148,11 +144,9 @@ public class SitemapService {
                 "  <url>\n"
         );
 
-
         xml.append(
                 "    <loc>"
         );
-
 
         xml.append(
                 escapeXml(
@@ -160,26 +154,22 @@ public class SitemapService {
                 )
         );
 
-
         xml.append(
                 "</loc>\n"
         );
 
 
         if (
-                lastModified
-                        != null
+                lastModified != null
         ) {
 
             xml.append(
                     "    <lastmod>"
             );
 
-
             xml.append(
                     lastModified
             );
-
 
             xml.append(
                     "</lastmod>\n"
