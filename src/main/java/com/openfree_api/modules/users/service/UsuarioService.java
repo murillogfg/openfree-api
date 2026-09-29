@@ -165,6 +165,28 @@ public class UsuarioService {
             CreateUsuarioRequest request
     ) {
 
+        String emailNormalizado =
+                normalizarEmail(
+                        request.getEmail()
+                );
+
+        if (
+                emailNormalizado != null
+                && usuarioRepository
+                        .existsByEmailIgnoreCase(
+                                emailNormalizado
+                        )
+        ) {
+            throw new BusinessException(
+                    "Este e-mail já está cadastrado."
+            );
+        }
+
+        request.setEmail(
+                emailNormalizado
+        );
+
+
         /*
          * Defesa adicional além do
          * @AssertTrue do DTO.
@@ -252,6 +274,18 @@ public class UsuarioService {
      * VALIDAR TERMOS
      * ==========================================
      */
+
+    private String normalizarEmail(
+            String email
+    ) {
+        if (email == null) {
+            return null;
+        }
+
+        return email
+                .trim()
+                .toLowerCase();
+    }
 
     private void validarAceiteDosTermos(
             CreateUsuarioRequest request
@@ -481,10 +515,20 @@ public class UsuarioService {
                         );
 
 
-        return usuarioMapper
-                .toResponse(
-                        usuario
-                );
+        UsuarioResponse response =
+                usuarioMapper
+                        .toResponse(
+                                usuario
+                        );
+
+        /*
+         * Perfil público não expõe dados de contato.
+         * O contato acontece pelo chat da plataforma.
+         */
+        response.setEmail(null);
+        response.setTelefone(null);
+
+        return response;
     }
 
 

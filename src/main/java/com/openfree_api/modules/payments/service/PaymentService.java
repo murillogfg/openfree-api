@@ -15,6 +15,7 @@ import com.openfree_api.modules.payments.entity.Payment;
 import com.openfree_api.modules.payments.entity.PaymentStatus;
 import com.openfree_api.modules.payments.repository.PaymentRepository;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,13 @@ import java.util.UUID;
 
 @Service
 public class PaymentService {
+
+    /*
+     * Pagamento simulado (sem gateway real).
+     * Só fica ativo em desenvolvimento.
+     */
+    @Value("${app.payments.simulation-enabled:false}")
+    private boolean simulacaoPagamentoHabilitada;
 
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
@@ -284,6 +292,13 @@ public class PaymentService {
             PaymentMethod metodo,
             Authentication authentication
     ) {
+
+        if (!simulacaoPagamentoHabilitada) {
+            throw new BusinessException(
+                    "O pagamento pela plataforma ainda não está disponível."
+            );
+        }
+
 
         Empresa empresa =
                 empresaAuthService

@@ -61,7 +61,7 @@ public class UsuarioController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<UsuarioResponse>> criar(
-            @RequestBody CreateUsuarioRequest request
+            @Valid @RequestBody CreateUsuarioRequest request
     ) {
 
         UsuarioResponse usuario = usuarioService.criar(request);

@@ -353,6 +353,18 @@ public class EmpresaService {
                 authentication
                         .getName();
 
+        if (
+                empresaRepository
+                        .findByUsuarioEmail(
+                                emailUsuarioLogado
+                        )
+                        .isPresent()
+        ) {
+            throw new BusinessException(
+                    "Você já possui uma empresa cadastrada."
+            );
+        }
+
         Usuario owner =
                 usuarioRepository
                         .findByEmail(

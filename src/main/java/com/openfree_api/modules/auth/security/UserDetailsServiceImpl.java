@@ -19,7 +19,7 @@ public UserDetails loadUserByUsername(String email)
         throws UsernameNotFoundException {
 
     Usuario usuario = usuarioRepository
-            .findByEmail(email)
+            .findByEmailIgnoreCase(email.trim())
             .orElseThrow(() ->
                     new UsernameNotFoundException("Usuário não encontrado.")
             );

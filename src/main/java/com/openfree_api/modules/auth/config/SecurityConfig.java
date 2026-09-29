@@ -145,6 +145,52 @@ public class SecurityConfig {
 
 
                         /*
+                         * Rotas administrativas bloqueadas.
+                         *
+                         * Não existe papel de administrador,
+                         * então nenhuma conta comum pode listar
+                         * ou excluir usuários/empresas de outras
+                         * pessoas, nem gerenciar membros ou ver
+                         * o painel de uma empresa pelo id.
+                         *
+                         * O front usa /usuarios/me, /companies/me
+                         * e /dashboard/company no lugar delas.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/usuarios",
+                                "/usuarios/",
+                                "/companies",
+                                "/companies/"
+                        )
+                        .denyAll()
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/usuarios/**",
+                                "/companies/**"
+                        )
+                        .denyAll()
+
+                        .requestMatchers(
+                                "/companies/*/members",
+                                "/companies/*/members/**",
+                                "/companies/*/dashboard"
+                        )
+                        .denyAll()
+
+
+                        /*
+                         * Health-check público da API.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/"
+                        )
+                        .permitAll()
+
+
+                        /*
                          * Autenticação, recuperação
                          * de senha e tratamento
                          * padrão de erro.

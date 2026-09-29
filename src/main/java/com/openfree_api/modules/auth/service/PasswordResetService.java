@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,17 @@ public class PasswordResetService {
     private final SecureRandom secureRandom =
             new SecureRandom();
 
+    /*
+     * Somente em desenvolvimento: mostra o link
+     * de recuperação no log, já que ainda não há
+     * envio de e-mail. Em produção fica false.
+     */
+    @Value("${app.password-reset.log-link:false}")
+    private boolean logResetLink;
+
+    @Value("${app.frontend-url:http://localhost:4200}")
+    private String frontendUrl;
+
     public PasswordResetService(
             UsuarioRepository usuarioRepository,
             PasswordResetTokenRepository
@@ -73,7 +85,7 @@ public class PasswordResetService {
 
         Usuario usuario =
                 usuarioRepository
-                        .findByEmail(emailNormalizado)
+                        .findByEmailIgnoreCase(emailNormalizado)
                         .orElse(null);
 
         /*
@@ -124,10 +136,13 @@ public class PasswordResetService {
          * Depois substituiremos isto por envio real
          * de e-mail.
          */
-        log.info(
-                "DEV ONLY - Reset password URL: http://localhost:4200/reset-password?token={}",
-                token
-        );
+        if (logResetLink) {
+            log.info(
+                    "DEV ONLY - Reset password URL: {}/reset-password?token={}",
+                    frontendUrl,
+                    token
+            );
+        }
     }
 
     @Transactional
