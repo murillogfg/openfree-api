@@ -54,7 +54,7 @@ public class PasswordResetService {
     @Value("${app.password-reset.log-link:false}")
     private boolean logResetLink;
 
-    @Value("${app.frontend-url:http://localhost:4200}")
+    @Value("${app.frontend.url:http://localhost:4200}")
     private String frontendUrl;
 
     public PasswordResetService(

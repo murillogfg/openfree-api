@@ -29,7 +29,7 @@ public class SitemapService {
 
 
     @Value(
-            "${app.frontend.url:https://openfree-front.vercel.app}"
+            "${app.frontend.url:https://openfree.genovaforge.com.br}"
     )
     private String frontendUrl;
 

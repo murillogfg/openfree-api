@@ -30,7 +30,7 @@ public class SitemapController {
      * Endpoint interno que será exposto no
      * frontend como:
      *
-     * https://openfree-front.vercel.app/sitemap.xml
+     * https://openfree.genovaforge.com.br/sitemap.xml
      *
      * através de um rewrite da Vercel.
      *
