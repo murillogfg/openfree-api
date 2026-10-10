@@ -50,7 +50,8 @@ class JwtServiceTest {
         );
     }
 
-    @Test
+    @SuppressWarnings("unused")
+@Test
     void deveGerarTokenEExtrairDadosComSucesso() {
 
         long instanteAntes =

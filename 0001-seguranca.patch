@@ -1,0 +1,706 @@
+From 0264008667ef420fabd37c6d65836adb24417067 Mon Sep 17 00:00:00 2001
+From: Murillo <murillogf202@gmail.com>
+Date: Tue, 29 Sep 2026 12:33:18 -0300
+Subject: [PATCH 1/2] fix: fecha rotas administrativas e corrige falhas de
+ seguranca
+
+- bloqueia listar/excluir usuarios e empresas, membros e painel por id
+- @Valid no cadastro, e-mail normalizado e duplicado tratado
+- perfil publico sem e-mail/telefone
+- login e recuperacao de senha sem diferenciar maiusculas
+- link de recuperacao so no log em dev
+- pagamento simulado desligado fora do dev
+- mensagem clara quando o usuario ja tem empresa
+- health-check / publico
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01S8ASv6z5Kv294KDxbPprpR
+---
+ .../modules/auth/config/SecurityConfig.java   |  46 ++++++
+ .../auth/security/UserDetailsServiceImpl.java |   2 +-
+ .../auth/service/PasswordResetService.java    |  25 +++-
+ .../companies/service/EmpresaService.java     |  12 ++
+ .../payments/service/PaymentService.java      |  15 ++
+ .../users/controller/UsuarioController.java   |   2 +-
+ .../users/repository/UsuarioRepository.java   |   4 +
+ .../modules/users/service/UsuarioService.java |  52 ++++++-
+ src/main/resources/application-dev.properties |  11 +-
+ .../resources/application-prod.properties     |  11 +-
+ .../auth/config/SecurityRulesTest.java        | 133 ++++++++++++++++++
+ .../service/PaymentSimulationTest.java        |  71 ++++++++++
+ .../service/UsuarioServiceSegurancaTest.java  | 111 +++++++++++++++
+ 13 files changed, 482 insertions(+), 13 deletions(-)
+ create mode 100644 src/test/java/com/openfree_api/modules/auth/config/SecurityRulesTest.java
+ create mode 100644 src/test/java/com/openfree_api/modules/payments/service/PaymentSimulationTest.java
+ create mode 100644 src/test/java/com/openfree_api/modules/users/service/UsuarioServiceSegurancaTest.java
+
+diff --git a/src/main/java/com/openfree_api/modules/auth/config/SecurityConfig.java b/src/main/java/com/openfree_api/modules/auth/config/SecurityConfig.java
+index f2ae1da..c97b6f8 100644
+--- a/src/main/java/com/openfree_api/modules/auth/config/SecurityConfig.java
++++ b/src/main/java/com/openfree_api/modules/auth/config/SecurityConfig.java
+@@ -144,6 +144,52 @@ public class SecurityConfig {
+                 .authorizeHttpRequests(auth -> auth
+ 
+ 
++                        /*
++                         * Rotas administrativas bloqueadas.
++                         *
++                         * Não existe papel de administrador,
++                         * então nenhuma conta comum pode listar
++                         * ou excluir usuários/empresas de outras
++                         * pessoas, nem gerenciar membros ou ver
++                         * o painel de uma empresa pelo id.
++                         *
++                         * O front usa /usuarios/me, /companies/me
++                         * e /dashboard/company no lugar delas.
++                         */
++                        .requestMatchers(
++                                HttpMethod.GET,
++                                "/usuarios",
++                                "/usuarios/",
++                                "/companies",
++                                "/companies/"
++                        )
++                        .denyAll()
++
++                        .requestMatchers(
++                                HttpMethod.DELETE,
++                                "/usuarios/**",
++                                "/companies/**"
++                        )
++                        .denyAll()
++
++                        .requestMatchers(
++                                "/companies/*/members",
++                                "/companies/*/members/**",
++                                "/companies/*/dashboard"
++                        )
++                        .denyAll()
++
++
++                        /*
++                         * Health-check público da API.
++                         */
++                        .requestMatchers(
++                                HttpMethod.GET,
++                                "/"
++                        )
++                        .permitAll()
++
++
+                         /*
+                          * Autenticação, recuperação
+                          * de senha e tratamento
+diff --git a/src/main/java/com/openfree_api/modules/auth/security/UserDetailsServiceImpl.java b/src/main/java/com/openfree_api/modules/auth/security/UserDetailsServiceImpl.java
+index c85b1cc..081865d 100644
+--- a/src/main/java/com/openfree_api/modules/auth/security/UserDetailsServiceImpl.java
++++ b/src/main/java/com/openfree_api/modules/auth/security/UserDetailsServiceImpl.java
+@@ -19,7 +19,7 @@ public UserDetails loadUserByUsername(String email)
+         throws UsernameNotFoundException {
+ 
+     Usuario usuario = usuarioRepository
+-            .findByEmail(email)
++            .findByEmailIgnoreCase(email.trim())
+             .orElseThrow(() ->
+                     new UsernameNotFoundException("Usuário não encontrado.")
+             );
+diff --git a/src/main/java/com/openfree_api/modules/auth/service/PasswordResetService.java b/src/main/java/com/openfree_api/modules/auth/service/PasswordResetService.java
+index 4fdea91..ed1ecff 100644
+--- a/src/main/java/com/openfree_api/modules/auth/service/PasswordResetService.java
++++ b/src/main/java/com/openfree_api/modules/auth/service/PasswordResetService.java
+@@ -10,6 +10,7 @@ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+ import org.springframework.security.crypto.password.PasswordEncoder;
++import org.springframework.beans.factory.annotation.Value;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+ 
+@@ -45,6 +46,17 @@ public class PasswordResetService {
+     private final SecureRandom secureRandom =
+             new SecureRandom();
+ 
++    /*
++     * Somente em desenvolvimento: mostra o link
++     * de recuperação no log, já que ainda não há
++     * envio de e-mail. Em produção fica false.
++     */
++    @Value("${app.password-reset.log-link:false}")
++    private boolean logResetLink;
++
++    @Value("${app.frontend-url:http://localhost:4200}")
++    private String frontendUrl;
++
+     public PasswordResetService(
+             UsuarioRepository usuarioRepository,
+             PasswordResetTokenRepository
+@@ -73,7 +85,7 @@ public class PasswordResetService {
+ 
+         Usuario usuario =
+                 usuarioRepository
+-                        .findByEmail(emailNormalizado)
++                        .findByEmailIgnoreCase(emailNormalizado)
+                         .orElse(null);
+ 
+         /*
+@@ -124,10 +136,13 @@ public class PasswordResetService {
+          * Depois substituiremos isto por envio real
+          * de e-mail.
+          */
+-        log.info(
+-                "DEV ONLY - Reset password URL: http://localhost:4200/reset-password?token={}",
+-                token
+-        );
++        if (logResetLink) {
++            log.info(
++                    "DEV ONLY - Reset password URL: {}/reset-password?token={}",
++                    frontendUrl,
++                    token
++            );
++        }
+     }
+ 
+     @Transactional
+diff --git a/src/main/java/com/openfree_api/modules/companies/service/EmpresaService.java b/src/main/java/com/openfree_api/modules/companies/service/EmpresaService.java
+index 2364d79..be4679a 100644
+--- a/src/main/java/com/openfree_api/modules/companies/service/EmpresaService.java
++++ b/src/main/java/com/openfree_api/modules/companies/service/EmpresaService.java
+@@ -353,6 +353,18 @@ public class EmpresaService {
+                 authentication
+                         .getName();
+ 
++        if (
++                empresaRepository
++                        .findByUsuarioEmail(
++                                emailUsuarioLogado
++                        )
++                        .isPresent()
++        ) {
++            throw new BusinessException(
++                    "Você já possui uma empresa cadastrada."
++            );
++        }
++
+         Usuario owner =
+                 usuarioRepository
+                         .findByEmail(
+diff --git a/src/main/java/com/openfree_api/modules/payments/service/PaymentService.java b/src/main/java/com/openfree_api/modules/payments/service/PaymentService.java
+index 50218da..b875a1e 100644
+--- a/src/main/java/com/openfree_api/modules/payments/service/PaymentService.java
++++ b/src/main/java/com/openfree_api/modules/payments/service/PaymentService.java
+@@ -15,6 +15,7 @@ import com.openfree_api.modules.payments.entity.Payment;
+ import com.openfree_api.modules.payments.entity.PaymentStatus;
+ import com.openfree_api.modules.payments.repository.PaymentRepository;
+ 
++import org.springframework.beans.factory.annotation.Value;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+ 
+@@ -44,6 +45,13 @@ import java.util.UUID;
+ @Service
+ public class PaymentService {
+ 
++    /*
++     * Pagamento simulado (sem gateway real).
++     * Só fica ativo em desenvolvimento.
++     */
++    @Value("${app.payments.simulation-enabled:false}")
++    private boolean simulacaoPagamentoHabilitada;
++
+     private final PaymentRepository paymentRepository;
+     private final PaymentMapper paymentMapper;
+     private final PaymentFeeService paymentFeeService;
+@@ -285,6 +293,13 @@ public class PaymentService {
+             Authentication authentication
+     ) {
+ 
++        if (!simulacaoPagamentoHabilitada) {
++            throw new BusinessException(
++                    "O pagamento pela plataforma ainda não está disponível."
++            );
++        }
++
++
+         Empresa empresa =
+                 empresaAuthService
+                         .getEmpresaLogada(
+diff --git a/src/main/java/com/openfree_api/modules/users/controller/UsuarioController.java b/src/main/java/com/openfree_api/modules/users/controller/UsuarioController.java
+index 1785bbf..0c05066 100644
+--- a/src/main/java/com/openfree_api/modules/users/controller/UsuarioController.java
++++ b/src/main/java/com/openfree_api/modules/users/controller/UsuarioController.java
+@@ -61,7 +61,7 @@ public class UsuarioController {
+ 
+     @PostMapping
+     public ResponseEntity<ApiResponse<UsuarioResponse>> criar(
+-            @RequestBody CreateUsuarioRequest request
++            @Valid @RequestBody CreateUsuarioRequest request
+     ) {
+ 
+         UsuarioResponse usuario = usuarioService.criar(request);
+diff --git a/src/main/java/com/openfree_api/modules/users/repository/UsuarioRepository.java b/src/main/java/com/openfree_api/modules/users/repository/UsuarioRepository.java
+index 26dad5d..61561fc 100644
+--- a/src/main/java/com/openfree_api/modules/users/repository/UsuarioRepository.java
++++ b/src/main/java/com/openfree_api/modules/users/repository/UsuarioRepository.java
+@@ -11,4 +11,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+ 
+     boolean existsByEmail(String email);
+ 
++    Optional<Usuario> findByEmailIgnoreCase(String email);
++
++    boolean existsByEmailIgnoreCase(String email);
++
+ }
+\ No newline at end of file
+diff --git a/src/main/java/com/openfree_api/modules/users/service/UsuarioService.java b/src/main/java/com/openfree_api/modules/users/service/UsuarioService.java
+index 3a62ce1..5785444 100644
+--- a/src/main/java/com/openfree_api/modules/users/service/UsuarioService.java
++++ b/src/main/java/com/openfree_api/modules/users/service/UsuarioService.java
+@@ -165,6 +165,28 @@ public class UsuarioService {
+             CreateUsuarioRequest request
+     ) {
+ 
++        String emailNormalizado =
++                normalizarEmail(
++                        request.getEmail()
++                );
++
++        if (
++                emailNormalizado != null
++                && usuarioRepository
++                        .existsByEmailIgnoreCase(
++                                emailNormalizado
++                        )
++        ) {
++            throw new BusinessException(
++                    "Este e-mail já está cadastrado."
++            );
++        }
++
++        request.setEmail(
++                emailNormalizado
++        );
++
++
+         /*
+          * Defesa adicional além do
+          * @AssertTrue do DTO.
+@@ -253,6 +275,18 @@ public class UsuarioService {
+      * ==========================================
+      */
+ 
++    private String normalizarEmail(
++            String email
++    ) {
++        if (email == null) {
++            return null;
++        }
++
++        return email
++                .trim()
++                .toLowerCase();
++    }
++
+     private void validarAceiteDosTermos(
+             CreateUsuarioRequest request
+     ) {
+@@ -481,10 +515,20 @@ public class UsuarioService {
+                         );
+ 
+ 
+-        return usuarioMapper
+-                .toResponse(
+-                        usuario
+-                );
++        UsuarioResponse response =
++                usuarioMapper
++                        .toResponse(
++                                usuario
++                        );
++
++        /*
++         * Perfil público não expõe dados de contato.
++         * O contato acontece pelo chat da plataforma.
++         */
++        response.setEmail(null);
++        response.setTelefone(null);
++
++        return response;
+     }
+ 
+ 
+diff --git a/src/main/resources/application-dev.properties b/src/main/resources/application-dev.properties
+index 9be3d0a..9f765c2 100644
+--- a/src/main/resources/application-dev.properties
++++ b/src/main/resources/application-dev.properties
+@@ -61,4 +61,13 @@ app.cors.allowed-origins=http://localhost:*,http://127.0.0.1:*
+ # =========================================================
+ 
+ springdoc.api-docs.enabled=true
+-springdoc.swagger-ui.enabled=true
+\ No newline at end of file
++springdoc.swagger-ui.enabled=true
++
++
++# =========================================================
++# RECURSOS SÓ DE DESENVOLVIMENTO
++# =========================================================
++
++app.payments.simulation-enabled=true
++app.password-reset.log-link=true
++app.frontend-url=http://localhost:4200
+diff --git a/src/main/resources/application-prod.properties b/src/main/resources/application-prod.properties
+index a8e3c6e..f15b56c 100644
+--- a/src/main/resources/application-prod.properties
++++ b/src/main/resources/application-prod.properties
+@@ -61,4 +61,13 @@ app.cors.allowed-origins=${OPENFREE_FRONTEND_URL}
+ # =========================================================
+ 
+ springdoc.api-docs.enabled=false
+-springdoc.swagger-ui.enabled=false
+\ No newline at end of file
++springdoc.swagger-ui.enabled=false
++
++
++# =========================================================
++# RECURSOS DESLIGADOS EM PRODUÇÃO
++# =========================================================
++
++app.payments.simulation-enabled=false
++app.password-reset.log-link=false
++app.frontend-url=${OPENFREE_FRONTEND_URL}
+diff --git a/src/test/java/com/openfree_api/modules/auth/config/SecurityRulesTest.java b/src/test/java/com/openfree_api/modules/auth/config/SecurityRulesTest.java
+new file mode 100644
+index 0000000..ab8ffa5
+--- /dev/null
++++ b/src/test/java/com/openfree_api/modules/auth/config/SecurityRulesTest.java
+@@ -0,0 +1,133 @@
++package com.openfree_api.modules.auth.config;
++
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
++
++import java.time.LocalDateTime;
++
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
++import org.springframework.http.MediaType;
++import org.springframework.security.core.userdetails.UserDetailsService;
++import org.springframework.security.crypto.password.PasswordEncoder;
++import org.springframework.test.web.servlet.MockMvc;
++
++import com.openfree_api.modules.auth.jwt.JwtService;
++import com.openfree_api.modules.users.entity.Usuario;
++import com.openfree_api.modules.users.enums.Role;
++import com.openfree_api.modules.users.repository.UsuarioRepository;
++
++/*
++ * Garante que um usuário comum autenticado
++ * não consegue usar as rotas administrativas
++ * (listar/excluir usuários e empresas, gerenciar
++ * membros ou ver o painel de outra empresa).
++ */
++@SpringBootTest
++@AutoConfigureMockMvc
++class SecurityRulesTest {
++
++    private static final String EMAIL =
++            "seguranca.teste@openfree.com";
++
++    @Autowired
++    private MockMvc mockMvc;
++
++    @Autowired
++    private UsuarioRepository usuarioRepository;
++
++    @Autowired
++    private PasswordEncoder passwordEncoder;
++
++    @Autowired
++    private JwtService jwtService;
++
++    @Autowired
++    private UserDetailsService userDetailsService;
++
++    private String bearer;
++
++    @BeforeEach
++    void criarUsuarioComum() {
++
++        if (!usuarioRepository.existsByEmail(EMAIL)) {
++
++            Usuario usuario = new Usuario();
++            usuario.setNome("Usuário Comum");
++            usuario.setEmail(EMAIL);
++            usuario.setSenha(passwordEncoder.encode("123456"));
++            usuario.setRole(Role.FREELANCER);
++            usuario.setTermsAcceptedAt(LocalDateTime.now());
++            usuario.setTermsVersion("1.0");
++
++            usuarioRepository.save(usuario);
++        }
++
++        bearer = "Bearer " + jwtService.gerarToken(
++                userDetailsService.loadUserByUsername(EMAIL)
++        );
++    }
++
++    @Test
++    void naoPodeListarTodosOsUsuarios() throws Exception {
++        mockMvc.perform(get("/usuarios")
++                        .header("Authorization", bearer))
++                .andExpect(status().isForbidden());
++    }
++
++    @Test
++    void naoPodeExcluirOutroUsuario() throws Exception {
++        mockMvc.perform(delete("/usuarios/999")
++                        .header("Authorization", bearer))
++                .andExpect(status().isForbidden());
++    }
++
++    @Test
++    void naoPodeListarTodasAsEmpresas() throws Exception {
++        mockMvc.perform(get("/companies")
++                        .header("Authorization", bearer))
++                .andExpect(status().isForbidden());
++    }
++
++    @Test
++    void naoPodeExcluirEmpresa() throws Exception {
++        mockMvc.perform(delete("/companies/1")
++                        .header("Authorization", bearer))
++                .andExpect(status().isForbidden());
++    }
++
++    @Test
++    void naoPodeSeAdicionarComoMembroDeEmpresa() throws Exception {
++        mockMvc.perform(post("/companies/1/members")
++                        .header("Authorization", bearer)
++                        .contentType(MediaType.APPLICATION_JSON)
++                        .content("{\"usuarioId\":1,\"cargo\":\"OWNER\"}"))
++                .andExpect(status().isForbidden());
++    }
++
++    @Test
++    void naoPodeVerPainelDeEmpresaPeloId() throws Exception {
++        mockMvc.perform(get("/companies/1/dashboard")
++                        .header("Authorization", bearer))
++                .andExpect(status().isForbidden());
++    }
++
++    @Test
++    void continuaAcessandoOProprioPerfil() throws Exception {
++        mockMvc.perform(get("/usuarios/me")
++                        .header("Authorization", bearer))
++                .andExpect(status().isOk());
++    }
++
++    @Test
++    void healthCheckEhPublico() throws Exception {
++        mockMvc.perform(get("/"))
++                .andExpect(status().isOk());
++    }
++}
+diff --git a/src/test/java/com/openfree_api/modules/payments/service/PaymentSimulationTest.java b/src/test/java/com/openfree_api/modules/payments/service/PaymentSimulationTest.java
+new file mode 100644
+index 0000000..830e0f2
+--- /dev/null
++++ b/src/test/java/com/openfree_api/modules/payments/service/PaymentSimulationTest.java
+@@ -0,0 +1,71 @@
++package com.openfree_api.modules.payments.service;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertThrows;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.Mockito.never;
++import static org.mockito.Mockito.verify;
++
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.extension.ExtendWith;
++import org.mockito.InjectMocks;
++import org.mockito.Mock;
++import org.mockito.junit.jupiter.MockitoExtension;
++import org.springframework.security.core.Authentication;
++
++import com.openfree_api.common.exception.BusinessException;
++import com.openfree_api.modules.auth.service.EmpresaAuthService;
++import com.openfree_api.modules.auth.service.UsuarioAuthService;
++import com.openfree_api.modules.payments.entity.PaymentMethod;
++import com.openfree_api.modules.payments.mapper.PaymentMapper;
++import com.openfree_api.modules.payments.repository.PaymentRepository;
++
++/*
++ * Sem a propriedade app.payments.simulation-enabled=true
++ * (só ligada no perfil dev), ninguém consegue marcar um
++ * pagamento como feito sem pagar de verdade.
++ */
++@ExtendWith(MockitoExtension.class)
++class PaymentSimulationTest {
++
++    @Mock
++    private PaymentRepository paymentRepository;
++
++    @Mock
++    private PaymentMapper paymentMapper;
++
++    @Mock
++    private PaymentFeeService paymentFeeService;
++
++    @Mock
++    private EmpresaAuthService empresaAuthService;
++
++    @Mock
++    private UsuarioAuthService usuarioAuthService;
++
++    @Mock
++    private Authentication authentication;
++
++    @InjectMocks
++    private PaymentService paymentService;
++
++    @Test
++    void simulacaoDesligadaPorPadrao() {
++
++        BusinessException erro = assertThrows(
++                BusinessException.class,
++                () -> paymentService.simularPagamento(
++                        1L,
++                        PaymentMethod.PIX,
++                        authentication
++                )
++        );
++
++        assertEquals(
++                "O pagamento pela plataforma ainda não está disponível.",
++                erro.getMessage()
++        );
++
++        verify(paymentRepository, never()).save(any());
++    }
++}
+diff --git a/src/test/java/com/openfree_api/modules/users/service/UsuarioServiceSegurancaTest.java b/src/test/java/com/openfree_api/modules/users/service/UsuarioServiceSegurancaTest.java
+new file mode 100644
+index 0000000..0a11c5a
+--- /dev/null
++++ b/src/test/java/com/openfree_api/modules/users/service/UsuarioServiceSegurancaTest.java
+@@ -0,0 +1,111 @@
++package com.openfree_api.modules.users.service;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertNull;
++import static org.junit.jupiter.api.Assertions.assertThrows;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.Mockito.never;
++import static org.mockito.Mockito.verify;
++import static org.mockito.Mockito.when;
++
++import java.util.Optional;
++
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.extension.ExtendWith;
++import org.mockito.ArgumentCaptor;
++import org.mockito.InjectMocks;
++import org.mockito.Mock;
++import org.mockito.junit.jupiter.MockitoExtension;
++import org.springframework.security.crypto.password.PasswordEncoder;
++
++import com.openfree_api.common.exception.BusinessException;
++import com.openfree_api.modules.users.dto.CreateUsuarioRequest;
++import com.openfree_api.modules.users.dto.UsuarioResponse;
++import com.openfree_api.modules.users.entity.Usuario;
++import com.openfree_api.modules.users.mapper.UsuarioMapper;
++import com.openfree_api.modules.users.repository.UsuarioRepository;
++
++@ExtendWith(MockitoExtension.class)
++class UsuarioServiceSegurancaTest {
++
++    @Mock
++    private UsuarioRepository usuarioRepository;
++
++    @Mock
++    private UsuarioMapper usuarioMapper;
++
++    @Mock
++    private PasswordEncoder passwordEncoder;
++
++    @InjectMocks
++    private UsuarioService usuarioService;
++
++    private CreateUsuarioRequest request(String email) {
++        CreateUsuarioRequest request = new CreateUsuarioRequest();
++        request.setNome("Murillo");
++        request.setEmail(email);
++        request.setSenha("123456");
++        request.setAceitouTermos(true);
++        return request;
++    }
++
++    @Test
++    void deveSalvarEmailEmMinusculoESemEspacos() {
++
++        when(usuarioRepository.existsByEmailIgnoreCase("murillo@gmail.com"))
++                .thenReturn(false);
++
++        ArgumentCaptor<CreateUsuarioRequest> captor =
++                ArgumentCaptor.forClass(CreateUsuarioRequest.class);
++
++        when(usuarioMapper.toEntity(captor.capture()))
++                .thenReturn(new Usuario());
++        when(usuarioRepository.save(any(Usuario.class)))
++                .thenAnswer(invocation -> invocation.getArgument(0));
++        when(usuarioMapper.toResponse(any(Usuario.class)))
++                .thenReturn(new UsuarioResponse());
++
++        usuarioService.criar(request("  Murillo@Gmail.com "));
++
++        assertEquals("murillo@gmail.com", captor.getValue().getEmail());
++    }
++
++    @Test
++    void naoDeveCadastrarEmailRepetidoMesmoComMaiusculas() {
++
++        when(usuarioRepository.existsByEmailIgnoreCase("murillo@gmail.com"))
++                .thenReturn(true);
++
++        BusinessException erro = assertThrows(
++                BusinessException.class,
++                () -> usuarioService.criar(request("MURILLO@gmail.com"))
++        );
++
++        assertEquals("Este e-mail já está cadastrado.", erro.getMessage());
++        verify(usuarioRepository, never()).save(any());
++    }
++
++    @Test
++    void perfilPublicoNaoExpoeEmailNemTelefone() {
++
++        Usuario usuario = new Usuario();
++        usuario.setId(7L);
++
++        UsuarioResponse completo = new UsuarioResponse();
++        completo.setId(7L);
++        completo.setNome("Murillo");
++        completo.setEmail("murillo@gmail.com");
++        completo.setTelefone("11999999999");
++
++        when(usuarioRepository.findById(7L))
++                .thenReturn(Optional.of(usuario));
++        when(usuarioMapper.toResponse(usuario))
++                .thenReturn(completo);
++
++        UsuarioResponse publico = usuarioService.buscarPerfilPublico(7L);
++
++        assertEquals("Murillo", publico.getNome());
++        assertNull(publico.getEmail());
++        assertNull(publico.getTelefone());
++    }
++}
+-- 
+2.43.0
+
