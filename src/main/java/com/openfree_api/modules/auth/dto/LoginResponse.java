@@ -7,6 +7,12 @@ public class LoginResponse {
     private long expiresIn;
     private String role;
 
+    /*
+     * Usado para renovar o login sem pedir a senha
+     * (POST /auth/refresh). Válido por 30 dias.
+     */
+    private String refreshToken;
+
     public LoginResponse(
             String token,
             String tipo,
@@ -17,6 +23,21 @@ public class LoginResponse {
         this.tipo = tipo;
         this.expiresIn = expiresIn;
         this.role = role;
+    }
+
+    public LoginResponse(
+            String token,
+            String tipo,
+            long expiresIn,
+            String role,
+            String refreshToken
+    ) {
+        this(token, tipo, expiresIn, role);
+        this.refreshToken = refreshToken;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
     }
 
     public String getToken() {

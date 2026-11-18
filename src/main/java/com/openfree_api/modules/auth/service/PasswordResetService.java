@@ -43,6 +43,8 @@ public class PasswordResetService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final RefreshTokenService refreshTokenService;
+
     private final SecureRandom secureRandom =
             new SecureRandom();
 
@@ -61,8 +63,13 @@ public class PasswordResetService {
             UsuarioRepository usuarioRepository,
             PasswordResetTokenRepository
                     passwordResetTokenRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            RefreshTokenService refreshTokenService
     ) {
+
+        this.refreshTokenService =
+                refreshTokenService;
+
         this.usuarioRepository =
                 usuarioRepository;
 
@@ -194,6 +201,21 @@ public class PasswordResetService {
         );
 
         resetToken.utilizar();
+
+
+        /*
+
+         * Senha nova: encerra as sessões em todos os
+
+         * aparelhos (quem tinha a senha antiga sai).
+
+         */
+
+        refreshTokenService.revogarTodas(
+
+                usuario.getId()
+
+        );
 
         passwordResetTokenRepository.save(
                 resetToken

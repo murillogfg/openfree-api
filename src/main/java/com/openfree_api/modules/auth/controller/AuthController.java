@@ -2,6 +2,7 @@ package com.openfree_api.modules.auth.controller;
 
 import com.openfree_api.modules.auth.dto.LoginRequest;
 import com.openfree_api.modules.auth.dto.LoginResponse;
+import com.openfree_api.modules.auth.dto.RefreshTokenRequest;
 import com.openfree_api.modules.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +42,31 @@ public class AuthController {
         return ResponseEntity.ok(
                 authService.login(request)
         );
+    }
+
+    /*
+     * Renova o login sem pedir a senha de novo.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.renovar(request.getRefreshToken())
+        );
+    }
+
+    /*
+     * Encerra a sessão deste aparelho.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestBody(required = false) RefreshTokenRequest request
+    ) {
+        authService.logout(
+                request != null ? request.getRefreshToken() : null
+        );
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/forgot-password")
