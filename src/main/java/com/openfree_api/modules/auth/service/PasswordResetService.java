@@ -1,5 +1,7 @@
 package com.openfree_api.modules.auth.service;
 
+import com.openfree_api.common.email.EmailService;
+import com.openfree_api.common.email.RecuperacaoSenhaEmail;
 import com.openfree_api.common.exception.BusinessException;
 import com.openfree_api.modules.auth.entity.PasswordResetToken;
 import com.openfree_api.modules.auth.repository.PasswordResetTokenRepository;
@@ -36,6 +38,13 @@ public class PasswordResetService {
     private static final int TOKEN_EXPIRATION_MINUTES =
             30;
 
+    /*
+     * Limite de pedidos por conta, para ninguém usar o
+     * "esqueci a senha" para encher a caixa de alguém.
+     */
+    private static final int MAX_PEDIDOS_POR_HORA =
+            3;
+
     private final UsuarioRepository usuarioRepository;
 
     private final PasswordResetTokenRepository
@@ -45,13 +54,15 @@ public class PasswordResetService {
 
     private final RefreshTokenService refreshTokenService;
 
+    private final EmailService emailService;
+
     private final SecureRandom secureRandom =
             new SecureRandom();
 
     /*
      * Somente em desenvolvimento: mostra o link
-     * de recuperação no log, já que ainda não há
-     * envio de e-mail. Em produção fica false.
+     * de recuperação no log, para testar sem e-mail.
+     * Em produção fica false.
      */
     @Value("${app.password-reset.log-link:false}")
     private boolean logResetLink;
@@ -64,8 +75,12 @@ public class PasswordResetService {
             PasswordResetTokenRepository
                     passwordResetTokenRepository,
             PasswordEncoder passwordEncoder,
-            RefreshTokenService refreshTokenService
+            RefreshTokenService refreshTokenService,
+            EmailService emailService
     ) {
+
+        this.emailService =
+                emailService;
 
         this.refreshTokenService =
                 refreshTokenService;
@@ -109,6 +124,23 @@ public class PasswordResetService {
             return;
         }
 
+        long pedidosRecentes =
+                passwordResetTokenRepository
+                        .countByUsuarioIdAndCreatedAtAfter(
+                                usuario.getId(),
+                                LocalDateTime.now().minusHours(1)
+                        );
+
+        if (pedidosRecentes >= MAX_PEDIDOS_POR_HORA) {
+
+            log.warn(
+                    "Limite de recuperação atingido para usuarioId={}",
+                    usuario.getId()
+            );
+
+            return;
+        }
+
         String token =
                 gerarToken();
 
@@ -137,17 +169,27 @@ public class PasswordResetService {
                 resetToken
         );
 
+        String link =
+                frontendUrl
+                        + "/reset-password?token="
+                        + token;
+
+        emailService.enviar(
+                RecuperacaoSenhaEmail.montar(
+                        usuario.getEmail(),
+                        usuario.getNome(),
+                        link,
+                        TOKEN_EXPIRATION_MINUTES
+                )
+        );
+
         /*
          * APENAS DESENVOLVIMENTO LOCAL.
-         *
-         * Depois substituiremos isto por envio real
-         * de e-mail.
          */
         if (logResetLink) {
             log.info(
-                    "DEV ONLY - Reset password URL: {}/reset-password?token={}",
-                    frontendUrl,
-                    token
+                    "DEV ONLY - Reset password URL: {}",
+                    link
             );
         }
     }

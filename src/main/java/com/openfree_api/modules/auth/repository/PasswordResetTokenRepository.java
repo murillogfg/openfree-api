@@ -4,6 +4,7 @@ import com.openfree_api.modules.auth.entity.PasswordResetToken;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface PasswordResetTokenRepository
@@ -15,5 +16,10 @@ public interface PasswordResetTokenRepository
     Optional<PasswordResetToken>
     findByTokenHash(
             String tokenHash
+    );
+
+    long countByUsuarioIdAndCreatedAtAfter(
+            Long usuarioId,
+            LocalDateTime desde
     );
 }
