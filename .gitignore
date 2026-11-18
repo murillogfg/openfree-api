@@ -48,9 +48,10 @@ target/
 .DS_Store
 Thumbs.db
 
-# OpenFree - dados locais
-uploads/
-data/
+# OpenFree - dados locais (só as pastas da raiz;
+# sem a barra, o módulo modules/uploads também era ignorado)
+/uploads/
+/data/
 
 # Secrets / ambiente local
 .env
