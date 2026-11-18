@@ -24,7 +24,7 @@ public final class RecuperacaoSenhaEmail {
                 saudacao(nome);
 
         String linkHtml =
-                HtmlUtils.htmlEscape(link);
+                HtmlUtils.htmlEscape(link, "UTF-8");
 
         String html =
                 "<!DOCTYPE html>"
@@ -33,7 +33,7 @@ public final class RecuperacaoSenhaEmail {
                 + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px;background:#ffffff;border-radius:12px;padding:32px;\">"
                 + "<tr><td style=\"font-size:22px;font-weight:bold;color:#4f46e5;padding-bottom:24px;\">OpenFree</td></tr>"
                 + "<tr><td style=\"font-size:16px;line-height:24px;\">"
-                + "<p style=\"margin:0 0 16px;\">" + HtmlUtils.htmlEscape(saudacao) + "</p>"
+                + "<p style=\"margin:0 0 16px;\">" + HtmlUtils.htmlEscape(saudacao, "UTF-8") + "</p>"
                 + "<p style=\"margin:0 0 24px;\">Recebemos um pedido para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha.</p>"
                 + "</td></tr>"
                 + "<tr><td align=\"center\" style=\"padding-bottom:24px;\">"
