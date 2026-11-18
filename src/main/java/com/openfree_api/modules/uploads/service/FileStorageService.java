@@ -3,6 +3,7 @@ package com.openfree_api.modules.uploads.service;
 import com.openfree_api.common.exception.BusinessException;
 import com.openfree_api.modules.uploads.dto.UploadResponse;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,12 +35,35 @@ public class FileStorageService {
     private static final String PDF_TYPE =
             "application/pdf";
 
-    private final Path root =
-            Paths.get("uploads")
-                    .toAbsolutePath()
-                    .normalize();
+    /*
+     * A extensão salva vem do TIPO validado, nunca do
+     * nome enviado pelo usuário. Assim ninguém consegue
+     * publicar um ".html" se passando por imagem.
+     */
+    private static final Map<String, String> EXTENSAO_POR_TIPO =
+            Map.of(
+                    "image/jpeg", ".jpg",
+                    "image/png", ".png",
+                    "image/webp", ".webp",
+                    "application/pdf", ".pdf"
+            );
 
-    public FileStorageService() {
+    /*
+     * Mesma pasta usada pelo restante da API
+     * (app.upload.dir / variável UPLOAD_DIR).
+     * Em produção aponta para o Volume do Railway.
+     */
+    private final Path root;
+
+    public FileStorageService(
+            @Value("${app.upload.dir:uploads}")
+            String uploadDirectory
+    ) {
+
+        this.root =
+                Paths.get(uploadDirectory)
+                        .toAbsolutePath()
+                        .normalize();
 
         try {
             Files.createDirectories(root);
@@ -121,8 +146,8 @@ public class FileStorageService {
             Files.createDirectories(diretorio);
 
             String extensao =
-                    obterExtensao(
-                            file.getOriginalFilename()
+                    extensaoPorTipo(
+                            file.getContentType()
                     );
 
             String nome =
@@ -165,25 +190,20 @@ public class FileStorageService {
         }
     }
 
-    private String obterExtensao(
-            String nomeOriginal
+    private String extensaoPorTipo(
+            String contentType
     ) {
 
-        if (
-                nomeOriginal == null
-                || !nomeOriginal.contains(".")
-        ) {
-            return "";
-        }
-
         String extensao =
-                nomeOriginal.substring(
-                        nomeOriginal.lastIndexOf(".")
-                ).toLowerCase();
+                contentType == null
+                        ? null
+                        : EXTENSAO_POR_TIPO.get(
+                                contentType.toLowerCase()
+                        );
 
-        if (extensao.length() > 10) {
+        if (extensao == null) {
             throw new BusinessException(
-                    "Extensão de arquivo inválida."
+                    "Tipo de arquivo não permitido."
             );
         }
 
