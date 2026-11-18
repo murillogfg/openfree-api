@@ -136,6 +136,14 @@ public class EmpresaService {
     }
 
 
+    /*
+     * Perfil visto por OUTROS usuários.
+     *
+     * Contratante pessoa física: e-mail e telefone são
+     * dados pessoais (LGPD) e não aparecem aqui. O
+     * contato acontece pelo chat da plataforma.
+     * O dono vê tudo em /companies/me.
+     */
     public Optional<EmpresaResponse>
     buscarPorId(
             Long id
@@ -143,9 +151,24 @@ public class EmpresaService {
 
         return empresaRepository
                 .findById(id)
-                .map(
-                        empresaMapper::toResponse
-                );
+                .map(empresa -> {
+
+                    EmpresaResponse response =
+                            empresaMapper.toResponse(
+                                    empresa
+                            );
+
+                    if (
+                            response != null
+                            && empresa.getTipoPessoa()
+                                    == TipoPessoa.PF
+                    ) {
+                        response.setEmail(null);
+                        response.setTelefone(null);
+                    }
+
+                    return response;
+                });
     }
 
 
