@@ -13,6 +13,8 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
 
     boolean existsByCnpj(String cnpj);
 
+    boolean existsByCpf(String cpf);
+
     boolean existsByEmail(String email);
 
     Optional<Empresa> findByUsuarioEmail(String email);

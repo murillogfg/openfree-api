@@ -86,6 +86,10 @@ public class EmpresaMapper {
                 empresa.getCnpj()
         );
 
+        response.setTipoPessoa(
+                empresa.getTipoPessoa()
+        );
+
         response.setEmail(
                 empresa.getEmail()
         );

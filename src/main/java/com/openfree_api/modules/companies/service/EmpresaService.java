@@ -2,6 +2,7 @@ package com.openfree_api.modules.companies.service;
 
 import com.openfree_api.common.exception.BusinessException;
 import com.openfree_api.common.validation.CnpjValidator;
+import com.openfree_api.common.validation.CpfValidator;
 
 import com.openfree_api.modules.auth.service.EmpresaAuthService;
 
@@ -17,6 +18,7 @@ import com.openfree_api.modules.companies.dto.UpdateEmpresaRequest;
 import com.openfree_api.modules.companies.entity.CargoEmpresa;
 import com.openfree_api.modules.companies.entity.Empresa;
 import com.openfree_api.modules.companies.entity.EmpresaUsuario;
+import com.openfree_api.modules.companies.entity.TipoPessoa;
 
 import com.openfree_api.modules.companies.mapper.EmpresaMapper;
 import com.openfree_api.modules.companies.mapper.EmpresaUsuarioMapper;
@@ -46,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 
 @Service
@@ -281,54 +284,125 @@ public class EmpresaService {
             Authentication authentication
     ) {
 
-        /*
-         * Normalizamos antes de qualquer
-         * consulta ou persistência.
-         *
-         * 12.345.678/0001-95
-         *
-         * vira:
-         *
-         * 12345678000195
-         */
-        String cnpjNormalizado =
-                CnpjValidator.normalize(
-                        request.getCnpj()
-                );
+        String emailUsuarioLogado =
+                authentication
+                        .getName();
 
-        /*
-         * Primeiro validamos matematicamente
-         * o CNPJ informado.
-         */
-        if (
-                !CnpjValidator.isValid(
-                        cnpjNormalizado
-                )
-        ) {
-
-            throw new BusinessException(
-                    "Informe um CNPJ válido."
-            );
-        }
-
-        /*
-         * As validações locais vêm antes da
-         * consulta externa.
-         *
-         * Dessa forma evitamos consultar um
-         * serviço externo quando o cadastro
-         * já pode ser rejeitado localmente.
-         */
-        if (
-                empresaRepository
-                        .existsByCnpj(
-                                cnpjNormalizado
+        return criarContratante(
+                request,
+                emailUsuarioLogado,
+                () -> usuarioRepository
+                        .findByEmail(
+                                emailUsuarioLogado
                         )
-        ) {
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "Usuário autenticado não encontrado."
+                                )
+                        )
+        );
+    }
 
-            throw new BusinessException(
-                    "Já existe uma empresa cadastrada com este CNPJ."
-            );
+
+    /*
+     * Usado no cadastro: cria o contratante para um
+     * usuário que acabou de ser criado, na mesma
+     * transação do cadastro.
+     */
+    @Transactional
+    public EmpresaResponse criarParaUsuario(
+            Usuario owner,
+            CreateEmpresaRequest request
+    ) {
+
+        return criarContratante(
+                request,
+                owner.getEmail(),
+                () -> owner
+        );
+    }
+
+
+    /*
+     * Fluxo comum de criação do contratante.
+     *
+     * PJ -> valida CNPJ, consulta a BrasilAPI e pode
+     *       ganhar o selo de CNPJ verificado.
+     * PF -> valida CPF; o CPF nunca sai nas respostas.
+     *
+     * A ordem das validações do PJ é a mesma de antes:
+     * primeiro as checagens locais, depois a consulta
+     * externa.
+     */
+    private EmpresaResponse criarContratante(
+            CreateEmpresaRequest request,
+            String emailDono,
+            Supplier<Usuario> carregarDono
+    ) {
+
+        TipoPessoa tipoPessoa =
+                request.getTipoPessoa() != null
+                        ? request.getTipoPessoa()
+                        : TipoPessoa.PJ;
+
+        String cnpjNormalizado = null;
+        String cpfNormalizado = null;
+
+        if (tipoPessoa == TipoPessoa.PJ) {
+
+            cnpjNormalizado =
+                    CnpjValidator.normalize(
+                            request.getCnpj()
+                    );
+
+            if (
+                    !CnpjValidator.isValid(
+                            cnpjNormalizado
+                    )
+            ) {
+                throw new BusinessException(
+                        "Informe um CNPJ válido."
+                );
+            }
+
+            if (
+                    empresaRepository
+                            .existsByCnpj(
+                                    cnpjNormalizado
+                            )
+            ) {
+                throw new BusinessException(
+                        "Já existe uma empresa cadastrada com este CNPJ."
+                );
+            }
+
+        } else {
+
+            cpfNormalizado =
+                    CpfValidator.normalize(
+                            request.getCpf()
+                    );
+
+            if (
+                    !CpfValidator.isValid(
+                            cpfNormalizado
+                    )
+            ) {
+                throw new BusinessException(
+                        "Informe um CPF válido."
+                );
+            }
+
+            if (
+                    empresaRepository
+                            .existsByCpf(
+                                    cpfNormalizado
+                            )
+            ) {
+                throw new BusinessException(
+                        "Já existe um contratante cadastrado com este CPF."
+                );
+            }
         }
 
         String emailNormalizado =
@@ -343,20 +417,15 @@ public class EmpresaService {
                                 emailNormalizado
                         )
         ) {
-
             throw new BusinessException(
                     "Já existe uma empresa cadastrada com este e-mail."
             );
         }
 
-        String emailUsuarioLogado =
-                authentication
-                        .getName();
-
         if (
                 empresaRepository
                         .findByUsuarioEmail(
-                                emailUsuarioLogado
+                                emailDono
                         )
                         .isPresent()
         ) {
@@ -366,38 +435,30 @@ public class EmpresaService {
         }
 
         Usuario owner =
-                usuarioRepository
-                        .findByEmail(
-                                emailUsuarioLogado
-                        )
-                        .orElseThrow(() ->
-                                new BusinessException(
-                                        "Usuário autenticado não encontrado."
-                                )
-                        );
+                carregarDono.get();
 
         /*
-         * Somente depois das validações locais
-         * consultamos se o CNPJ existe na fonte
-         * externa.
-         *
-         * Se a consulta estiver indisponível e
-         * retornar null, permitimos o cadastro,
-         * deixando o CNPJ como não verificado.
+         * Consulta externa só para PJ. Se o serviço
+         * estiver fora do ar (null), o cadastro segue
+         * com o CNPJ como não verificado.
          */
-        CnpjLookupResult consultaCnpj =
-                cnpjLookupService.consultar(
-                        cnpjNormalizado
+        CnpjLookupResult consultaCnpj = null;
+
+        if (tipoPessoa == TipoPessoa.PJ) {
+
+            consultaCnpj =
+                    cnpjLookupService.consultar(
+                            cnpjNormalizado
+                    );
+
+            if (
+                    consultaCnpj != null
+                            && consultaCnpj.inexistente()
+            ) {
+                throw new BusinessException(
+                        "CNPJ não encontrado."
                 );
-
-        if (
-                consultaCnpj != null
-                        && consultaCnpj.inexistente()
-        ) {
-
-            throw new BusinessException(
-                    "CNPJ não encontrado."
-            );
+            }
         }
 
         Empresa empresa =
@@ -406,12 +467,16 @@ public class EmpresaService {
                                 request
                         );
 
-        /*
-         * Sobrescrevemos os valores do mapper
-         * com as versões normalizadas.
-         */
+        empresa.setTipoPessoa(
+                tipoPessoa
+        );
+
         empresa.setCnpj(
                 cnpjNormalizado
+        );
+
+        empresa.setCpf(
+                cpfNormalizado
         );
 
         empresa.setEmail(
@@ -422,14 +487,6 @@ public class EmpresaService {
                 owner
         );
 
-        /*
-         * VERIFIED:
-         * consulta realizada e CNPJ encontrado.
-         *
-         * UNAVAILABLE/null:
-         * permitimos o cadastro, porém ele fica
-         * aguardando verificação.
-         */
         boolean cnpjVerificado =
                 consultaCnpj != null
                         && consultaCnpj.verificado();
@@ -438,10 +495,7 @@ public class EmpresaService {
                 cnpjVerificado
         );
 
-        if (
-                cnpjVerificado
-        ) {
-
+        if (cnpjVerificado) {
             empresa.setCnpjVerificadoEm(
                     LocalDateTime.now()
             );

@@ -1,11 +1,51 @@
 package com.openfree_api.modules.companies.dto;
 
+import com.openfree_api.modules.companies.entity.TipoPessoa;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class CreateEmpresaRequest {
+
+    /*
+     * PF ou PJ. Se não vier, tratamos como PJ
+     * (compatível com o cadastro antigo).
+     */
+    private TipoPessoa tipoPessoa;
+
+    /*
+     * Obrigatório só para PF (validado no service).
+     */
+    @Pattern(
+            regexp =
+                    "\\d{11}|\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}",
+            message =
+                    "O CPF deve conter 11 dígitos ou estar no formato 000.000.000-00."
+    )
+    private String cpf;
+
+    public TipoPessoa getTipoPessoa() {
+        return tipoPessoa;
+    }
+
+    public void setTipoPessoa(
+            TipoPessoa tipoPessoa
+    ) {
+        this.tipoPessoa = tipoPessoa;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(
+            String cpf
+    ) {
+        this.cpf = cpf;
+    }
+
 
     @NotBlank(
             message = "A razão social é obrigatória."
@@ -27,9 +67,9 @@ public class CreateEmpresaRequest {
     private String nomeFantasia;
 
 
-    @NotBlank(
-            message = "O CNPJ é obrigatório."
-    )
+    /*
+     * Obrigatório só para PJ (validado no service).
+     */
     @Pattern(
             regexp =
                     "\\d{14}|\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}",

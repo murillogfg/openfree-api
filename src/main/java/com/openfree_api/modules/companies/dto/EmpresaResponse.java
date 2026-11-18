@@ -1,5 +1,7 @@
 package com.openfree_api.modules.companies.dto;
 
+import com.openfree_api.modules.companies.entity.TipoPessoa;
+
 import java.time.LocalDateTime;
 
 public class EmpresaResponse {
@@ -8,6 +10,11 @@ public class EmpresaResponse {
     private String razaoSocial;
     private String nomeFantasia;
     private String cnpj;
+
+    /*
+     * PF ou PJ. O CPF nunca é devolvido (LGPD).
+     */
+    private TipoPessoa tipoPessoa;
     private String email;
     private String telefone;
     private String descricao;
@@ -22,6 +29,16 @@ public class EmpresaResponse {
     private String cidade;
     private String estado;
     private String site;
+
+    public TipoPessoa getTipoPessoa() {
+        return tipoPessoa;
+    }
+
+    public void setTipoPessoa(
+            TipoPessoa tipoPessoa
+    ) {
+        this.tipoPessoa = tipoPessoa;
+    }
 
     public EmpresaResponse() {
     }

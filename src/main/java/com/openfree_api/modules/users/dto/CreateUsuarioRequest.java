@@ -1,8 +1,10 @@
 package com.openfree_api.modules.users.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class CreateUsuarioRequest {
@@ -47,6 +49,43 @@ public class CreateUsuarioRequest {
             message = "É necessário aceitar os Termos de Uso e a Política de Privacidade."
     )
     private Boolean aceitouTermos;
+
+
+    /*
+     * Lado escolhido no cadastro:
+     * FREELANCER (padrão) ou CONTRATANTE.
+     */
+    @Pattern(
+            regexp = "FREELANCER|CONTRATANTE",
+            message = "Perfil inválido. Use FREELANCER ou CONTRATANTE."
+    )
+    private String perfil;
+
+    /*
+     * Obrigatório quando perfil = CONTRATANTE.
+     */
+    @Valid
+    private CadastroContratanteRequest contratante;
+
+    public String getPerfil() {
+        return perfil;
+    }
+
+    public void setPerfil(
+            String perfil
+    ) {
+        this.perfil = perfil;
+    }
+
+    public CadastroContratanteRequest getContratante() {
+        return contratante;
+    }
+
+    public void setContratante(
+            CadastroContratanteRequest contratante
+    ) {
+        this.contratante = contratante;
+    }
 
 
     public String getNome() {

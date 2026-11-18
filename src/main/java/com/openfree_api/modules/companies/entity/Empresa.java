@@ -51,11 +51,35 @@ public class Empresa {
      * Armazenamos somente os 14 números.
      */
     @Column(
-            nullable = false,
             unique = true,
             length = 14
     )
     private String cnpj;
+
+
+    /*
+     * PF (CPF) ou PJ (CNPJ).
+     *
+     * A coluna aceita nulo porque as empresas antigas
+     * foram criadas antes deste campo; nulo = PJ.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "tipo_pessoa",
+            length = 2
+    )
+    private TipoPessoa tipoPessoa;
+
+
+    /*
+     * Somente os 11 números. Dado pessoal (LGPD):
+     * nunca é devolvido em nenhuma resposta da API.
+     */
+    @Column(
+            unique = true,
+            length = 11
+    )
+    private String cpf;
 
 
     /*
@@ -232,6 +256,29 @@ public class Empresa {
             String cnpj
     ) {
         this.cnpj = cnpj;
+    }
+
+
+    public TipoPessoa getTipoPessoa() {
+        return tipoPessoa != null
+                ? tipoPessoa
+                : TipoPessoa.PJ;
+    }
+
+    public void setTipoPessoa(
+            TipoPessoa tipoPessoa
+    ) {
+        this.tipoPessoa = tipoPessoa;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(
+            String cpf
+    ) {
+        this.cpf = cpf;
     }
 
 

@@ -2,6 +2,10 @@ package com.openfree_api.modules.users.service;
 
 import com.openfree_api.common.exception.BusinessException;
 
+import com.openfree_api.modules.companies.dto.CreateEmpresaRequest;
+import com.openfree_api.modules.companies.entity.TipoPessoa;
+import com.openfree_api.modules.companies.service.EmpresaService;
+import com.openfree_api.modules.users.dto.CadastroContratanteRequest;
 import com.openfree_api.modules.users.dto.CreateUsuarioRequest;
 import com.openfree_api.modules.users.dto.UpdateUsuarioRequest;
 import com.openfree_api.modules.users.dto.UsuarioResponse;
@@ -50,12 +54,19 @@ public class UsuarioService {
     private final PasswordEncoder
             passwordEncoder;
 
+    private final EmpresaService
+            empresaService;
+
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             UsuarioMapper usuarioMapper,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            EmpresaService empresaService
     ) {
+
+        this.empresaService =
+                empresaService;
 
         this.usuarioRepository =
                 usuarioRepository;
@@ -195,6 +206,17 @@ public class UsuarioService {
                 request
         );
 
+        boolean contratante =
+                "CONTRATANTE".equals(
+                        request.getPerfil()
+                );
+
+        if (contratante) {
+            validarDadosDoContratante(
+                    request.getContratante()
+            );
+        }
+
 
         Usuario usuario =
                 usuarioMapper
@@ -216,10 +238,146 @@ public class UsuarioService {
                         );
 
 
+        /*
+         * "Quero contratar": cria o contratante (PF ou PJ)
+         * na mesma transação. Se algo falhar (CPF/CNPJ
+         * repetido, CNPJ inexistente...), o usuário
+         * também não é criado.
+         */
+        if (contratante) {
+            empresaService.criarParaUsuario(
+                    usuarioSalvo,
+                    montarContratante(
+                            usuarioSalvo,
+                            request.getContratante()
+                    )
+            );
+        }
+
+
         return usuarioMapper
                 .toResponse(
                         usuarioSalvo
                 );
+    }
+
+
+    private void validarDadosDoContratante(
+            CadastroContratanteRequest dados
+    ) {
+
+        if (
+                dados == null
+                || dados.getTipoPessoa() == null
+        ) {
+            throw new BusinessException(
+                    "Informe se você vai contratar como pessoa física ou como empresa."
+            );
+        }
+
+        if (
+                dados.getTipoPessoa() == TipoPessoa.PF
+                && isBlank(dados.getCpf())
+        ) {
+            throw new BusinessException(
+                    "O CPF é obrigatório para contratante pessoa física."
+            );
+        }
+
+        if (dados.getTipoPessoa() == TipoPessoa.PJ) {
+
+            if (isBlank(dados.getCnpj())) {
+                throw new BusinessException(
+                        "O CNPJ é obrigatório para contratante empresa."
+                );
+            }
+
+            if (isBlank(dados.getNomeFantasia())) {
+                throw new BusinessException(
+                        "O nome da empresa é obrigatório."
+                );
+            }
+        }
+    }
+
+
+    /*
+     * Converte os dados do cadastro no request usado
+     * pela criação do contratante.
+     *
+     * PF: o nome exibido é o nome da própria pessoa.
+     */
+    private CreateEmpresaRequest montarContratante(
+            Usuario usuario,
+            CadastroContratanteRequest dados
+    ) {
+
+        CreateEmpresaRequest empresa =
+                new CreateEmpresaRequest();
+
+        empresa.setTipoPessoa(
+                dados.getTipoPessoa()
+        );
+
+        empresa.setEmail(
+                usuario.getEmail()
+        );
+
+        empresa.setTelefone(
+                usuario.getTelefone()
+        );
+
+        empresa.setCidade(
+                dados.getCidade()
+        );
+
+        empresa.setEstado(
+                dados.getEstado()
+        );
+
+        if (dados.getTipoPessoa() == TipoPessoa.PF) {
+
+            empresa.setCpf(
+                    dados.getCpf()
+            );
+
+            empresa.setNomeFantasia(
+                    usuario.getNome()
+            );
+
+            empresa.setRazaoSocial(
+                    usuario.getNome()
+            );
+
+        } else {
+
+            String nomeFantasia =
+                    dados.getNomeFantasia().trim();
+
+            empresa.setCnpj(
+                    dados.getCnpj()
+            );
+
+            empresa.setNomeFantasia(
+                    nomeFantasia
+            );
+
+            empresa.setRazaoSocial(
+                    isBlank(dados.getRazaoSocial())
+                            ? nomeFantasia
+                            : dados.getRazaoSocial().trim()
+            );
+        }
+
+        return empresa;
+    }
+
+
+    private boolean isBlank(
+            String valor
+    ) {
+        return valor == null
+                || valor.isBlank();
     }
 
 
